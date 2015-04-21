@@ -148,13 +148,13 @@ class Order(models.Model):
         return cur_price * self.opened_volume * self.instrument.multiplier - self.opened_amount
     
     @classmethod
-    def open(cls, trader, inst, volume, direction, strategy_code=''):
-        local_order_id = trader.open_market_order(inst, volume, direction)
+    def open(cls, trader, inst, price, volume, direction, strategy_code=''):
+        local_order_id = trader.open_order(inst, price, volume, direction)
         return trader.account.create_order(local_order_id, True, strategy_code)
     
     @classmethod
     def close(cls, trader, orig_order, strategy_code=''):
-        local_order_id = trader.close_market_order(orig_order)
+        local_order_id = trader.close_order(orig_order)
         if local_order_id:
             #orig_order.status = Order.OS_CLOSING
             #orig_order.save()

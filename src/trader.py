@@ -160,11 +160,18 @@ class BaseTrader(object):
 
     def open_order(self, inst, price, volume, direction):
         """ 开仓。返回本地订单号。"""
-        raise NotImplementedError
+        if not price:
+            return self.open_market_order(inst, volume, direction)
+        else:
+            return self.open_limit_order(inst, price, volume, direction)
 
-    def close_order(self, order, price, volume = None):
+    def close_order(self, order, price=0.0, volume = None):
         """ 平仓。返回本地订单号。"""
-        raise NotImplementedError
+        volume = volume or abs(order.opened_volume)
+        if not price:
+            return self.close_market_order(order, volume)
+        else:
+            return self.close_limit_order(order, price, volume)
 
     def close_all(self, inst=None):
         orig_orders = []
