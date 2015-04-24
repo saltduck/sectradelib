@@ -133,11 +133,14 @@ class BaseTrader(object):
         order.status = Order.OS_CANCELED
         order.save()
 
-    def on_trade(self, execid, secid, orderid, price, volume, exectime):
+    def on_trade(self, execid, secid, orderid, price, volume, exectime, accum=False):
         order = Order.objects.filter(sys_id=orderid).first()
         if order is None:
             logger.error(u'找不到OrderID={0}的订单'.format(orderid))
             return
+        if accum:
+            for t in order.trades:
+                t.delete()
         self.account.on_trade(order, execid, price, volume, exectime)
         if order.is_open:
             # 补仓或开新仓：按最新价设置止损价
