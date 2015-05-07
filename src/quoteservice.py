@@ -48,7 +48,7 @@ class QuoteService(threading.Thread):
             api.unsubscribe([inst.secid for inst in seclist])
 
     def wait_for_subscribe(self):
-        from futures.models import Instrument
+        from .models import Instrument
         ps = rdb.pubsub()
         ps.subscribe('mdmonitor')
         while self.is_running:
