@@ -1,9 +1,13 @@
+# coding: utf8
 import logging
 import curses
 import curses.panel
 import curses.textpad
 
+import redisco
+
 logger = logging.getLogger(__name__)
+rdb = redisco.get_client()
 
 
 class CursesHandler(logging.Handler):
@@ -14,9 +18,12 @@ class CursesHandler(logging.Handler):
     def emit(self, record):
         msg = self.format(record)
         if isinstance(msg, unicode):
-            msg = msg.encode('utf8')
+            msg = msg.encode('utf8') + '\n'
+        if '成交回报' in msg:
+            for i in range(0, len(msg), 40):
+                rdb.publish('tradelog', msg[i:i+40])  # Notify client
         if self.screen:
-            self.screen.addstr('\n{0}'.format(msg))
+            self.screen.addstr('{0}'.format(msg))
             self.screen.refresh()
 
 def init_colors(COLOR_PAIR, COLORS):
