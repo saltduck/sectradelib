@@ -20,10 +20,9 @@ class CursesHandler(logging.Handler):
         if isinstance(msg, unicode):
             msg = msg.encode('utf8') + '\n'
         if '成交回报' in msg:
-            for i in range(0, len(msg), 40):
-                rdb.publish('tradelog', msg[i:i+40])  # Notify client
+            rdb.publish('tradelog', msg)  # Notify client
         if self.screen:
-            self.screen.addstr('{0}'.format(msg))
+            self.screen.addstr(msg)
             self.screen.refresh()
 
 def init_colors(COLOR_PAIR, COLORS):
