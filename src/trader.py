@@ -114,7 +114,7 @@ class BaseTrader(object):
         order = Order.objects.filter(local_id=local_id).first()
         if order is None:
             logger.warn(u'找不到LocalOrderID={0}的订单'.format(local_id))
-            self.account.create_order(local_id)
+            order = self.account.create_order(local_id)
         order.on_new(orderid, instid, direction, price, volume, exectime)
 
     def on_reject(self, local_id, reason_code, reason_desc):
