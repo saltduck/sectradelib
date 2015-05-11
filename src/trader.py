@@ -2,6 +2,7 @@
 import logging
 import threading
 from datetime import datetime
+import time
 
 import redisco
 
@@ -138,6 +139,9 @@ class BaseTrader(object):
         if order is None:
             logger.error(u'找不到OrderID={0}的订单'.format(orderid))
             return
+        while order.is_open is None:
+            time.sleep(1)
+            order = Order.objects.filter(local_id=orderid).first()
         self.account.on_trade(order, execid, price, volume, exectime)
         if order.is_open:
             # 补仓或开新仓：按最新价设置止损价

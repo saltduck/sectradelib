@@ -162,7 +162,7 @@ class Order(models.Model):
 
     def on_new(self, orderid, instid, direction, price, volume, exectime):
         instrument = Instrument.objects.filter(secid=instid).first()
-        assert self.is_open is not None
+        #assert self.is_open is not None
         self.sys_id = orderid
         self.instrument = instrument
         self.is_long = direction
