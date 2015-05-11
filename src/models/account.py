@@ -131,7 +131,7 @@ class Account(models.Model):
         self._available = available
 
     def create_order(self, local_order_id, is_open=None, strategy_code='', orig_order=None):
-        assert is_open == (orig_order is None), (is_open, orig_order)
+        assert is_open is None or is_open == (orig_order is None), (is_open, orig_order)
         neworder = Order.objects.filter(local_id=local_order_id).first()
         if not neworder:
             neworder = Order(local_id=local_order_id)
