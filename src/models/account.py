@@ -130,14 +130,17 @@ class Account(models.Model):
     def set_available(self, available):
         self._available = available
 
-    def create_order(self, local_order_id, is_open, strategy_code='', orig_order=None):
+    def create_order(self, local_order_id, is_open=None, strategy_code='', orig_order=None):
         assert is_open == (orig_order is None), (is_open, orig_order)
-        neworder = Order(account=self, local_id=local_order_id, is_open=is_open, strategy_code=strategy_code)
+        neworder = Order.objects.filter(local_id=local_order_id).first()
+        if not neworder:
+            neworder = Order(local_id=local_order_id)
+            logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
+        neworder.update_attributes(account=self, is_open=is_open, strategy_code=strategy_code)
         if orig_order:
             neworder.orig_order = orig_order
         assert neworder.is_valid(), neworder.errors
         neworder.save()
-        logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
         return neworder
 
     def on_trade(self, order, execid, price, volume, tradetime):
