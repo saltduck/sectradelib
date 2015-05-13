@@ -4,26 +4,7 @@ import curses
 import curses.panel
 import curses.textpad
 
-import redisco
-
 logger = logging.getLogger(__name__)
-rdb = redisco.get_client()
-
-
-class CursesHandler(logging.Handler):
-    def __init__(self, *args, **kwargs):
-        super(CursesHandler, self).__init__(*args, **kwargs)
-        self.screen = None
-
-    def emit(self, record):
-        msg = self.format(record)
-        if isinstance(msg, unicode):
-            msg = msg.encode('utf8') + '\n'
-        if '成交回报' in msg:
-            rdb.publish('tradelog', msg)  # Notify client
-        if self.screen:
-            self.screen.addstr(msg)
-            self.screen.refresh()
 
 def init_colors(COLOR_PAIR, COLORS):
     """initialize curses color pairs and give them names. The color pair
