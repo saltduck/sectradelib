@@ -216,9 +216,9 @@ class InstrumentEx(models.Model):
     def set_stopprice(self, tradeprice, direction):
         if direction:
             self.stop_price_long = tradeprice - self.offset
-            logger.debug('Set stop price to {0}'.format(self.stop_price_long))
+            logger.debug('Set long stop price to {0}'.format(self.stop_price_long))
         else:
             self.stop_price_short = tradeprice + self.offset
-            logger.debug('Set stop price to {0}'.format(self.stop_price_short))
+            logger.debug('Set short stop price to {0}'.format(self.stop_price_short))
         assert self.is_valid(), self.errors
         self.save()
