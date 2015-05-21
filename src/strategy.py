@@ -113,17 +113,20 @@ class CheckStopThread(threading.Thread):
     def run(self):
         ps = rdb.pubsub()
         ps.subscribe('checkstop')
+        logger.debug('CheckStopThread started...')
         while not self.trader.evt_stop.wait(0.1):
-            if not self.trader.can_trade():
-                continue
             item = ps.get_message()
             if item and item['type'] =='message':
+                if not self.trader.can_trade():
+                    logger.debug(u'非交易时间')
+                    continue
                 instid = item['data']
-                b_price = current_price(instid, True)
-                s_price = current_price(instid, False)
                 monitor = self.trader.monitors.get(instid)
                 if not monitor:
+                    logger.debug(u'收到未监控合约{0}的checkstop消息'.format(instid))
                     continue
+                b_price = current_price(instid, True)
+                s_price = current_price(instid, False)
                 for order in self.trader.opened_orders(instrument=monitor.instrument):
                     if order.opened_volume < 0 and s_price >= monitor.stop_price_short:
                         logger.warning(u'合约{0}当前价格{1}触及空头止损价{2}，立即平仓!'.format(order.instrument.name, s_price, monitor.stop_price_short))
@@ -131,3 +134,4 @@ class CheckStopThread(threading.Thread):
                     if order.opened_volume > 0 and b_price <= monitor.stop_price_long:
                         logger.warning(u'合约{0}当前价格{1}触及多头止损价{2}，立即平仓!'.format(order.instrument.name, b_price, monitor.stop_price_long))
                         Order.close(self.trader, order)
+        logger.debug('CheckStopThread exited.')
