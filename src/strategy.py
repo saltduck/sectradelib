@@ -14,14 +14,20 @@ logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 
 def wait_for_closed(order_idlist):
+    """ 等待指定订单全部平仓完毕，超过3秒则放弃。返回是否成功。"""
+    cnt = 0
     # copy and unique elements AND keep origin order_idlist immutable
     order_idlist = list(set(order_idlist))
     while order_idlist:
+        sleep(1)
+        if cnt >= 3:
+            break
+        cnt += 1
         for oid in order_idlist:
             order = Order.objects.get_by_id(oid)
             if order is None or order.is_closed():
                 order_idlist.remove(oid)
-        sleep(0.1)
+    return not bool(order_idlist)
 
 
 class BaseStrategy(object):
@@ -52,7 +58,9 @@ class BaseStrategy(object):
                 neworder = Order.close(self.trader, order, strategy_code=str(self.code))
                 if neworder:
                     to_be_closed.append(order.id)
-        wait_for_closed(to_be_closed)
+        if not wait_for_closed(to_be_closed):
+            logger.warning(u'平仓失败，放弃执行策略!')
+            return
         volume = volume or self.get_max_volume(inst, direction)
         volume = min(volume, inst.max_order_volume)
         if volume < inst.min_order_volume:
