@@ -85,7 +85,7 @@ class BaseTrader(object):
             if isinstance(offset, InstrumentEx):
                 offset = offset.offset
             self.add_instrument(symbol=symbol, offset=offset)
-        logger.deubg(u'Set monitors to {0}'.format(self.monitors))
+        logger.debug(u'Set monitors to {0}'.format(self.monitors))
 
     def ready_for_trade(self):
         if not self.is_ready:
