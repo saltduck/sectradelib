@@ -129,13 +129,19 @@ class CheckStopThread(threading.Thread):
                     logger.debug(u'非交易时间')
                     continue
                 instid = item['data']
+                instrument = Instrument.objects.filter(secid=instid).first()
+                if instrument is None:
+                    logger.debug(u'非法secid: {0}'.format(instid))
+                    continue
                 monitor = self.trader.monitors.get(instid)
                 if not monitor:
-                    logger.debug(u'收到未监控合约{0}的checkstop消息'.format(instid))
+                    monitor = self.trader.monitors.get(instrument.product.prodid)
+                if not monitor:
+                    logger.debug(u'收到未监控合约{0}的checkstop消息, monitor={1}'.format(instid, self.trader.monitors))
                     continue
                 b_price = current_price(instid, True)
                 s_price = current_price(instid, False)
-                for order in self.trader.opened_orders(instrument=monitor.instrument):
+                for order in self.trader.opened_orders(instrument=instrument):
                     if order.opened_volume < 0 and s_price >= monitor.stop_price_short:
                         logger.warning(u'合约{0}当前价格{1}触及空头止损价{2}，立即平仓!'.format(order.instrument.name, s_price, monitor.stop_price_short))
                         Order.close(self.trader, order)
