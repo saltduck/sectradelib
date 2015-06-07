@@ -37,18 +37,22 @@ class BaseStrategy(object):
         self.app = app
         self.orders = defaultdict(list)
 
-    def run(self, instid):
+    def check(self, instid):
         if not self.trader.can_trade():
             logger.debug('Can not trade!')
-            return
+            return False
         if self.trader.close_lock:
             logger.debug('In close lock!')
-            return
+            return False
         inst = Instrument.objects.get_by_id(self.trader.monitors[instid].instrument_id)
         if not inst.is_trading:
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
-            return
-        self._do_strategy(inst)
+            return False
+        return True
+
+    def run(self, instid):
+        if self.check(instid):
+            self._do_strategy(inst)
 
     def _close_then_open(self, inst, direction, price, volume):
         to_be_closed = []
