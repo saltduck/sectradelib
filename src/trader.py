@@ -141,7 +141,7 @@ class BaseTrader(object):
             logger.error(u'找不到OrderID={0}的订单'.format(orderid))
             return
         if order.is_open is None:
-            logger.warn(u'订单(OrderID={0})无法交易，等待重试'.format(orderid))
+            logger.debug(u'订单(OrderID={0})无法交易，等待重试'.format(orderid))
             return False
         self.account.on_trade(order, execid, price, volume, exectime)
         if order.is_open:
