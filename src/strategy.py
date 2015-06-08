@@ -52,6 +52,7 @@ class BaseStrategy(object):
 
     def run(self, instid):
         if self.check(instid):
+            inst = Instrument.objects.get_by_id(self.trader.monitors[instid].instrument_id)
             self._do_strategy(inst)
 
     def _close_then_open(self, inst, direction, price, volume):
