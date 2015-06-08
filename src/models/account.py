@@ -56,7 +56,7 @@ class Account(models.Model):
             queryset = queryset.filter(strategy_code=strategy_code)
         orders = list(queryset.filter(status=Order.OS_FILLED))
         queryset = queryset.filter(status=Order.OS_CANCELED)
-        orders.extend([o for o in queryset if o.filled_volume != 0])
+        orders.extend([o for o in queryset if o.opened_volume != 0.0])
         return orders
 
     def untraded_orders(self, instrument=None, strategy_code=''):
