@@ -47,12 +47,15 @@ class Account(models.Model):
         return Order.objects.filter(account_id=self.id)
 
     def opened_orders(self, instrument=None, strategy_code=''):
-        queryset = self.orders.filter(status=Order.OS_FILLED)
+        queryset = self.orders
         if instrument:
             queryset = queryset.filter(instrument_id=instrument.id)
         if strategy_code:
             queryset = queryset.filter(strategy_code=strategy_code)
-        return queryset
+        orders = list(queryset.filter(status=Order.OS_FILLED))
+        queryset = queryset.filter(status=Order.OS_CANCELED)
+        orders.extend([o for o in queryset if o.filled_volume != 0])
+        return orders
 
     def untraded_orders(self, instrument=None, strategy_code=''):
         queryset = self.orders
