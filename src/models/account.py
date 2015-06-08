@@ -2,6 +2,7 @@
 import logging
 from itertools import groupby
 from operator import attrgetter
+import threading
 
 from redisco import models
 
@@ -41,6 +42,7 @@ class Account(models.Model):
     def __init__(self, *args, **kwargs):
         super(Account, self).__init__(*args, **kwargs)
         self.real_profits = 0.0
+        self.lock = threading.RLock()
 
     @property
     def orders(self):
@@ -132,27 +134,29 @@ class Account(models.Model):
 
     def create_order(self, local_order_id, is_open=None, strategy_code='', orig_order=None):
         assert is_open is None or is_open == (orig_order is None), (is_open, orig_order)
-        neworder = Order.objects.filter(local_id=local_order_id).first()
-        if not neworder:
-            neworder = Order(local_id=local_order_id)
-            logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
-        neworder.update_attributes(account=self, is_open=is_open, strategy_code=strategy_code)
-        if orig_order:
-            neworder.orig_order = orig_order
-        assert neworder.is_valid(), neworder.errors
-        neworder.save()
+        with self.lock:
+            neworder = Order.objects.filter(local_id=local_order_id).first()
+            if not neworder:
+                neworder = Order(local_id=local_order_id)
+                logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
+            neworder.update_attributes(account=self, is_open=is_open, strategy_code=strategy_code)
+            if orig_order:
+                neworder.orig_order = orig_order
+            assert neworder.is_valid(), neworder.errors
+            neworder.save()
         return neworder
 
     def on_trade(self, order, execid, price, volume, tradetime):
-        trade = order.on_trade(price, volume, tradetime, execid)
-        if not trade:
-            return
-        self.book(-trade.commission, order.currency, u'收取手续费')
-        if not order.is_open:
-            # 平仓
-            order.on_close(trade)
-            self.book(trade.profit, order.currency, u'获取利润')
-            self.real_profits += trade.profit
-        if not self.last_trade_time or self.last_trade_time < tradetime:
-            self.last_trade_time = tradetime
-            self.save()
+        with self.lock:
+            trade = order.on_trade(price, volume, tradetime, execid)
+            if not trade:
+                return
+            self.book(-trade.commission, order.currency, u'收取手续费')
+            if not order.is_open:
+                # 平仓
+                order.on_close(trade)
+                self.book(trade.profit, order.currency, u'获取利润')
+                self.real_profits += trade.profit
+            if not self.last_trade_time or self.last_trade_time < tradetime:
+                self.last_trade_time = tradetime
+                self.save()
