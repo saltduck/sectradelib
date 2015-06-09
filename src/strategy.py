@@ -146,11 +146,16 @@ class CheckStopThread(threading.Thread):
                     continue
                 b_price = current_price(instid, True)
                 s_price = current_price(instid, False)
+                to_be_closed = []
                 for order in self.trader.opened_orders(instrument=instrument):
                     if order.opened_volume < 0 and s_price >= monitor.stop_price_short:
                         logger.warning(u'合约{0}当前价格{1}触及空头止损价{2}，立即平仓!'.format(order.instrument.name, s_price, monitor.stop_price_short))
                         Order.close(self.trader, order)
+                        to_be_closed.append(order.id)
                     if order.opened_volume > 0 and b_price <= monitor.stop_price_long:
                         logger.warning(u'合约{0}当前价格{1}触及多头止损价{2}，立即平仓!'.format(order.instrument.name, b_price, monitor.stop_price_long))
                         Order.close(self.trader, order)
+                        to_be_closed.append(order.id)
+                if not wait_for_closed(to_be_closed):
+                    logger.warning(u'止损平仓失败，请检查原因!')
         logger.debug('CheckStopThread exited.')
