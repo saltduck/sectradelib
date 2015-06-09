@@ -147,19 +147,6 @@ class Order(models.Model):
         cur_price = cur_price or self.cur_price
         return cur_price * self.opened_volume * self.instrument.multiplier - self.opened_amount
     
-    @classmethod
-    def open(cls, trader, inst, price, volume, direction, strategy_code=''):
-        local_order_id = trader.open_order(inst, price, volume, direction)
-        return trader.account.create_order(local_order_id, True, strategy_code)
-    
-    @classmethod
-    def close(cls, trader, orig_order, strategy_code=''):
-        local_order_id = trader.close_order(orig_order)
-        if local_order_id:
-            #orig_order.status = Order.OS_CLOSING
-            #orig_order.save()
-            return trader.account.create_order(local_order_id, False, strategy_code, orig_order)
-
     def on_new(self, orderid, instid, direction, price, volume, exectime):
         instrument = Instrument.objects.filter(secid=instid).first()
         #assert self.is_open is not None

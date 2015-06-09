@@ -60,7 +60,7 @@ class BaseStrategy(object):
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
             if order.can_close:
                 logger.debug(u'先行平仓{0}'.format(order.sys_id))
-                neworder = Order.close(self.trader, order, strategy_code=str(self.code))
+                neworder = self.trader.close_order(order, strategy_code=str(self.code))
                 if neworder:
                     to_be_closed.append(order.id)
         if not wait_for_closed(to_be_closed):
@@ -71,14 +71,14 @@ class BaseStrategy(object):
         if volume < inst.min_order_volume:
             logger.warning(u'资金不足，无法下单!')
             return
-        order = Order.open(self.trader, inst, price, volume, direction, strategy_code=str(self.code))
+        order = self.trader.open_order(inst, price, volume, direction, strategy_code=str(self.code))
         self.orders[inst.id].append(order.local_id)
         
     def close(self, inst):
         logger.info(u'策略{0}: 平仓{1}'.format(self.code, inst.name))
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
             if order.can_close:
-                Order.close(self.trader, order, strategy_code=str(self.code))
+                self.trader.close_order(order, strategy_code=str(self.code))
 
     def buy(self, inst, price, volume):
         logger.info(u'策略{0}: 买进{1}'.format(self.code, inst.name))
@@ -150,11 +150,11 @@ class CheckStopThread(threading.Thread):
                 for order in self.trader.opened_orders(instrument=instrument):
                     if order.opened_volume < 0 and s_price >= monitor.stop_price_short:
                         logger.warning(u'合约{0}当前价格{1}触及空头止损价{2}，立即平仓!'.format(order.instrument.name, s_price, monitor.stop_price_short))
-                        Order.close(self.trader, order)
+                        self.trader.close_order(order)
                         to_be_closed.append(order.id)
                     if order.opened_volume > 0 and b_price <= monitor.stop_price_long:
                         logger.warning(u'合约{0}当前价格{1}触及多头止损价{2}，立即平仓!'.format(order.instrument.name, b_price, monitor.stop_price_long))
-                        Order.close(self.trader, order)
+                        self.trader.close_order(order)
                         to_be_closed.append(order.id)
                 if not wait_for_closed(to_be_closed):
                     logger.warning(u'止损平仓失败，请检查原因!')
