@@ -98,57 +98,57 @@ class BaseTrader(object):
             self.infowin.paint()
 
     def on_history_trade(self, execid, instid, orderid, local_id, direction, price, volume, exectime):
-        inst = Instrument.objects.filter(secid=instid).first()
-        order = Order.objects.filter(sys_id=orderid).first()
-        if not order:
-            logger.error(u'收到未知订单的历史成交记录, OrderID={0}'.format(orderid))
-            return
-        order.local_id = local_id
-        assert order.is_open is not None, order
         with self.lock:
+            inst = Instrument.objects.filter(secid=instid).first()
+            order = Order.objects.filter(sys_id=orderid).first()
+            if not order:
+                logger.error(u'收到未知订单的历史成交记录, OrderID={0}'.format(orderid))
+                return
+            order.local_id = local_id
+            assert order.is_open is not None, order
             if not order.sys_id:
                 order.on_new(orderid, instid, direction, price, volume, exectime)
             self.on_trade(execid, instid, orderid, price, volume, exectime)
 
     def on_new_order(self, local_id, instid, orderid, direction, price, volume, exectime):
-        # check duplicate
-        if Order.objects.filter(sys_id=orderid):
-            return
-        order = Order.objects.filter(local_id=local_id).first()
         with self.lock:
+            # check duplicate
+            if Order.objects.filter(sys_id=orderid):
+                return
+            order = Order.objects.filter(local_id=local_id).first()
             if order is None:
                 logger.warn(u'找不到LocalOrderID={0}的订单'.format(local_id))
                 order = self.account.create_order(local_id)
             order.on_new(orderid, instid, direction, price, volume, exectime)
 
     def on_reject(self, local_id, reason_code, reason_desc):
-        logger.warning(u'订单(ClOrdID={0})被拒绝，原因：{1} {2}'.format(local_id, reason_code, reason_desc))
-        order = Order.objects.filter(local_id=local_id).first()
-        if order is None:
-            logger.error(u'找不到LocalOrderID={0}的订单'.format(local_id))
-            return
         with self.lock:
+            logger.warning(u'订单(ClOrdID={0})被拒绝，原因：{1} {2}'.format(local_id, reason_code, reason_desc))
+            order = Order.objects.filter(local_id=local_id).first()
+            if order is None:
+                logger.error(u'找不到LocalOrderID={0}的订单'.format(local_id))
+                return
             order.status = Order.OS_REJECTED
             order.save()
 
     def on_cancel(self, orderid):
-        order = Order.objects.filter(local_id=orderid).first()
-        if not order:
-            logger.error(u'收到未知订单的撤单回报，OrderID={0}'.format(orderid))
-            return
         with self.lock:
+            order = Order.objects.filter(local_id=orderid).first()
+            if not order:
+                logger.error(u'收到未知订单的撤单回报，OrderID={0}'.format(orderid))
+                return
             order.status = Order.OS_CANCELED
             order.save()
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime):
-        order = Order.objects.filter(sys_id=orderid).first()
-        if order is None:
-            logger.error(u'找不到OrderID={0}的订单'.format(orderid))
-            return
-        if order.is_open is None:
-            logger.debug(u'订单(OrderID={0})无法交易，等待重试'.format(orderid))
-            return False
         with self.lock:
+            order = Order.objects.filter(sys_id=orderid).first()
+            if order is None:
+                logger.error(u'找不到OrderID={0}的订单'.format(orderid))
+                return
+            if order.is_open is None:
+                logger.debug(u'订单(OrderID={0})无法交易，等待重试'.format(orderid))
+                return False
             self.account.on_trade(order, execid, price, volume, exectime)
             if order.is_open:
                 # 补仓或开新仓：按最新价设置止损价
@@ -181,18 +181,18 @@ class BaseTrader(object):
 
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
         """ 平仓。返回平仓订单。"""
-        volume = volume or abs(order.opened_volume)
-        if not price:
-            local_id = self.close_market_order(order, volume)
-        else:
-            local_id = self.close_limit_order(order, price, volume)
-        if local_id:
-            with self.lock:
+        with self.lock:
+            volume = volume or abs(order.opened_volume)
+            if not price:
+                local_id = self.close_market_order(order, volume)
+            else:
+                local_id = self.close_limit_order(order, price, volume)
+            if local_id:
                 return self.account.create_order(local_id, False, strategy_code, order)
 
     def close_all(self, inst=None):
-        orig_orders = []
         with self.lock:
+            orig_orders = []
             for order in self.opened_orders(inst):
                 if order.can_close:
                     logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
