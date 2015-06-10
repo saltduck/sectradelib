@@ -89,7 +89,7 @@ class Order(models.Model):
 
     @property
     def can_close(self):
-        return self.status == Order.OS_FILLED
+        return self.status in (Order.OS_FILLED, Order.OS_CANCELED)
 
     @property
     def trades(self):
