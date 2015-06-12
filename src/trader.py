@@ -102,7 +102,7 @@ class BaseTrader(object):
             inst = Instrument.objects.filter(secid=instid).first()
             order = Order.objects.filter(sys_id=orderid).first()
             if not order:
-                logger.error(u'收到未知订单的历史成交记录, OrderID={0}'.format(orderid))
+                logger.error(u'收到未知订单的历史成交记录, 订单号：{0}'.format(orderid))
                 return
             order.local_id = local_id
             assert order.is_open is not None, order
@@ -117,25 +117,25 @@ class BaseTrader(object):
                 return
             order = Order.objects.filter(local_id=local_id).first()
             if order is None:
-                logger.warn(u'找不到LocalOrderID={0}的订单'.format(local_id))
-                order = self.account.create_order(local_id)
+                logger.warn(u'找不到本地订单号为{0}的订单'.format(local_id))
+                return False
             order.on_new(orderid, instid, direction, price, volume, exectime)
 
     def on_reject(self, local_id, reason_code, reason_desc):
         with self.lock:
-            logger.warning(u'订单(ClOrdID={0})被拒绝，原因：{1} {2}'.format(local_id, reason_code, reason_desc))
+            logger.warning(u'订单(本地订单号：{0})被拒绝，原因：{1} {2}'.format(local_id, reason_code, reason_desc))
             order = Order.objects.filter(local_id=local_id).first()
             if order is None:
-                logger.error(u'找不到LocalOrderID={0}的订单'.format(local_id))
+                logger.error(u'找不到订单号为{0}的订单'.format(local_id))
                 return
             order.status = Order.OS_REJECTED
             order.save()
 
-    def on_cancel(self, orderid):
+    def on_cancel(self, local_id):
         with self.lock:
-            order = Order.objects.filter(local_id=orderid).first()
+            order = Order.objects.filter(local_id=local_id).first()
             if not order:
-                logger.error(u'收到未知订单的撤单回报，OrderID={0}'.format(orderid))
+                logger.error(u'收到未知订单的撤单回报，本地订单号：{0}'.format(local_id))
                 return
             order.status = Order.OS_CANCELED
             order.save()
@@ -144,10 +144,10 @@ class BaseTrader(object):
         with self.lock:
             order = Order.objects.filter(sys_id=orderid).first()
             if order is None:
-                logger.error(u'找不到OrderID={0}的订单'.format(orderid))
+                logger.error(u'找不到订单号为{0}的订单'.format(orderid))
                 return
             if order.is_open is None:
-                logger.debug(u'订单(OrderID={0})无法交易，等待重试'.format(orderid))
+                logger.debug(u'订单(订单号：{0})无法交易，等待重试'.format(orderid))
                 return False
             self.account.on_trade(order, execid, price, volume, exectime)
             if order.is_open:
@@ -171,12 +171,12 @@ class BaseTrader(object):
 
     def open_order(self, inst, price, volume, direction, strategy_code=''):
         """ 开仓。返回新订单。"""
-        if not price:
-            local_id = self.open_market_order(inst, volume, direction)
-        else:
-            local_id = self.open_limit_order(inst, price, volume, direction)
-        if local_id:
-            with self.lock:
+        with self.lock:
+            if not price:
+                local_id = self.open_market_order(inst, volume, direction)
+            else:
+                local_id = self.open_limit_order(inst, price, volume, direction)
+            if local_id:
                 return self.account.create_order(local_id, True, strategy_code)
 
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
