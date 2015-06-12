@@ -2,6 +2,7 @@
 import logging
 import os
 import threading
+import time
 
 import redisco
 
@@ -83,7 +84,7 @@ def send_account_email(interval, app, server, port, username, password, sendtoli
 class CheckCtpMDThread(threading.Thread):
 
     def __init__(self, app, *args, **kwargs):
-        threading.Thread.__init__(*args, **kwargs)
+        threading.Thread.__init__(self, *args, **kwargs)
         self.app = app
         self.name = 'CheckCtpMD'
         self.evt_stop = threading.Event()
@@ -103,12 +104,10 @@ class CheckCtpMDThread(threading.Thread):
                 time.sleep(5)
                 key = self.get_heartbeatkey()
                 v = int(rdb.get(key))
-                if v <= self.last_value:
+                if v is None:
                     logger.error(u'行情进程无法重启！系统停止运行')
-                    # 平掉所有浮仓
-                    for api in self.app.traderapis:
-                        api.close_all()
-                    # 停止策略执行
-                    self.app.stop_strategies()
-            else:
-                self.last_value = v
+                    self.app.on_emergency()
+                    continue
+                else:
+                    logger.info(u'行情进程重启成功')
+            self.last_value = v
