@@ -3,7 +3,11 @@ import logging
 import os
 import threading
 
+import redisco
+
 logger = logging.getLogger(__name__)
+rdb = redisco.get_client()
+
 
 def check_running(PIDFILE):
     if os.path.exists(PIDFILE):
@@ -32,6 +36,7 @@ def check_running(PIDFILE):
             f.write(str(os.getpid()))
     return is_running
 
+
 def align_digit(volume, tick_size):
     """
     >>> align_digit(3, 1.0)
@@ -44,6 +49,7 @@ def align_digit(volume, tick_size):
     3.75
     """
     return int(volume / tick_size) * tick_size
+
 
 def send_account_email(interval, app, server, port, username, password, sendtolist):
     logger.info(u'发送资金变动通知email...')
@@ -72,3 +78,37 @@ def send_account_email(interval, app, server, port, username, password, sendtoli
     )
     app.threads.append(t)
     t.start()
+
+
+class CheckCtpMDThread(threading.Thread):
+
+    def __init__(self, app, *args, **kwargs):
+        threading.Thread.__init__(*args, **kwargs)
+        self.app = app
+        self.name = 'CheckCtpMD'
+        self.evt_stop = threading.Event()
+        self.last_value = 0
+
+    def cancel(self):
+        self.evt_stop.set()
+
+    def run(self):
+        key = self.get_heartbeatkey()
+        while not self.evt_stop.wait(5):
+            v = int(rdb.get(key))
+            if v <= self.last_value:
+                logger.error(u'行情进程停止运行，尝试重启...')
+                self.restart_md_process()
+                # wait 5 seconds then check again
+                time.sleep(5)
+                key = self.get_heartbeatkey()
+                v = int(rdb.get(key))
+                if v <= self.last_value:
+                    logger.error(u'行情进程无法重启！系统停止运行')
+                    # 平掉所有浮仓
+                    for api in self.app.traderapis:
+                        api.close_all()
+                    # 停止策略执行
+                    self.app.stop_strategies()
+            else:
+                self.last_value = v

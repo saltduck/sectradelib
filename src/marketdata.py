@@ -4,8 +4,6 @@ from abc import ABCMeta, abstractmethod
 
 import redisco
 
-from .models.instrument import Instrument
-
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 

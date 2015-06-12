@@ -72,7 +72,11 @@ class QuoteService(threading.Thread):
             sleep(1)
             saved = False
             for instid in self.instruments:
-                saved = self.save_inst_mindata(instid) or saved
+                try:
+                    saved = self.save_inst_mindata(instid) or saved
+                except Exception, e:
+                    logger.exception(unicode(e))
+                    pass
             if saved:
                 self.evt_newmindata.set()
                 sleep(0.1)
