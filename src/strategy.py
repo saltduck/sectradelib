@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 
 def wait_for_closed(order_idlist):
-    """ 等待指定订单全部平仓完毕，超过3秒则放弃。返回是否成功。"""
+    """ 等待指定订单全部平仓完毕，超过30秒则放弃。返回是否成功。"""
     cnt = 0
     # copy and unique elements AND keep origin order_idlist immutable
     order_idlist = list(set(order_idlist))
     while order_idlist:
         sleep(1)
-        if cnt >= 3:
+        if cnt >= 30:
             break
         cnt += 1
         for oid in order_idlist:
