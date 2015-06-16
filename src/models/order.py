@@ -76,6 +76,7 @@ class Order(models.Model):
     volume = models.FloatField(indexed=False)
     status = models.IntegerField(default=OS_NONE)
     orig_order = models.ReferenceField('Order')
+    stopprice = models.FloatField(indexed=False)
 
     def __repr__(self):
         return u'<Order: {0.id}({0.instrument}:{0.opened_volume})>'.format(self)
@@ -175,6 +176,22 @@ class Order(models.Model):
         self.save()
         return t
 
+    def set_stopprice(self, price, offset):
+        # 浮动止损价
+        if self.is_long:
+            stopprice = price - offset
+            if self.stopprice and stopprice <= self.stopprice:
+                return
+        else:
+            stopprice = price + offset
+            if self.stopprice and stopprice >= self.stopprice:
+                return
+        self.stopprice = float(stopprice)
+        assert self.is_valid(), self.errors
+        logger.debug('Order {0} set stopprice to {1}'.format(
+            self.sys_id, self.stopprice))
+        self.save()
+
     def on_close(self, trade):
         trade.on_close()
         if abs(self.orig_order.closed_volume) >= abs(self.orig_order.filled_volume):
@@ -197,15 +214,3 @@ class InstrumentEx(models.Model):
     account = models.ReferenceField('Account')
     instrument = models.ReferenceField(Instrument)
     offset = models.FloatField(default=0.0, indexed=False)
-    stop_price_long = models.FloatField(default=0.0, indexed=False)
-    stop_price_short = models.FloatField(default=99999999.0, indexed=False)
-
-    def set_stopprice(self, tradeprice, direction):
-        if direction:
-            self.stop_price_long = tradeprice - self.offset
-            logger.debug('Set long stop price to {0}'.format(self.stop_price_long))
-        else:
-            self.stop_price_short = tradeprice + self.offset
-            logger.debug('Set short stop price to {0}'.format(self.stop_price_short))
-        assert self.is_valid(), self.errors
-        self.save()

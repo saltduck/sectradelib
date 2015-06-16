@@ -156,10 +156,7 @@ class BaseTrader(object):
                     monitor = self.monitors[order.instrument.secid]
                 except KeyError:
                     monitor = self.monitors[order.instrument.product.prodid]
-                try:
-                    monitor.set_stopprice(price, order.is_long)
-                except AttributeError:
-                    pass
+                order.set_stopprice(price, monitor.offset)
 
     def query_all_trades(self):
         """ 查询自从上次保存数据以来的所有成交历史 """
