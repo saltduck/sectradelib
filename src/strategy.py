@@ -118,9 +118,11 @@ class CheckAvailableThread(threading.Thread):
                 logger.warning(u'资金不足，平掉全部浮仓!')
                 self.trader.close_lock = True
                 order_idlist = self.trader.close_all()
-                wait_for_closed(order_idlist)
+                if wait_for_closed(order_idlist):
+                    logger.info(u'全部平仓成功!')
+                else:
+                    logger.info(u'平仓失败！')
                 self.trader.close_lock = False
-                logger.info(u'全部平仓成功!')
 
 
 class CheckStopThread(threading.Thread):
