@@ -3,6 +3,7 @@ import logging
 import threading
 from time import sleep, time
 from collections import defaultdict
+from abc import ABCMeta, abstractmethod
 
 import redisco
 
@@ -31,8 +32,10 @@ def wait_for_closed(order_idlist):
 
 
 class BaseStrategy(object):
+    __metaclass__ = ABCMeta
+
     def __init__(self, code, trader, app):
-        self.code = code
+        self.code = str(code)
         self.trader = trader
         self.app = app
         self.orders = defaultdict(list)
@@ -50,10 +53,10 @@ class BaseStrategy(object):
             return False
         return True
 
-    def run(self, instid):
+    def run(self, instid, result=None):
         if self.check(instid):
             inst = Instrument.objects.get_by_id(self.trader.monitors[instid].instrument_id)
-            self._do_strategy(inst)
+            self._do_strategy(inst, result)
 
     def _close_then_open(self, inst, direction, price, volume):
         to_be_closed = []
@@ -90,11 +93,13 @@ class BaseStrategy(object):
         if inst.is_trading:
             threading.Thread(target=self._close_then_open, args=(inst, False, price, volume)).start()
 
-    def _do_strategy(self, inst):
-        raise NotImplementedError
+    @abstractmethod
+    def _do_strategy(self, inst, result=None):
+        """ 执行策略 """
 
+    @abstractmethod
     def get_max_volume(self, inst, direction):
-        raise NotImplementedError
+        """ 计算最大可下单手数 """
 
 
 class CheckAvailableThread(threading.Thread):
