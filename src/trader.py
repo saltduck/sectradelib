@@ -15,7 +15,8 @@ rdb = redisco.get_client()
 
 
 class BaseTrader(object):
-    def __init__(self, accountcode, currency, instrumentstr):
+    def __init__(self, name, accountcode, currency, instrumentstr):
+        self.name = name
         self.accountcode = accountcode
         self.account = Account.objects.get_or_create(code=accountcode, default_currency=currency)
         if not self.account.last_trade_time:
@@ -53,7 +54,7 @@ class BaseTrader(object):
 
     def untraded_orders(self, *args, **kwargs):
         return self.account.untraded_orders(*args, **kwargs)
-        
+
     def combined_positions(self):
         return self.account.combined_positions()
 

@@ -4,6 +4,7 @@ import os
 import threading
 import time
 
+from decorator import decorator
 import redisco
 
 logger = logging.getLogger(__name__)

@@ -19,7 +19,7 @@ def tearDown():
 
 def test_1():
 	inst = Instrument.objects.get_or_create(secid='XX1505', name='XX1505', symbol='XX1505', quoted_currency='CNY', multiplier=1.0)
-	trader = BaseTrader('test', 'CNY', 'XX1505:100')
+	trader = BaseTrader('test', 'test', 'CNY', 'XX1505:100')
 	trader.set_monitors()
 	thread = CheckStopThread(trader)
 	order1 = trader.open_order(inst, 0.0, 1, True, 'anna1')

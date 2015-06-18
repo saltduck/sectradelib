@@ -115,15 +115,15 @@ class CheckAvailableThread(threading.Thread):
     @logerror
     def check(self):
         account = self.trader.account
-            if account.available / account.balance < self.reserve / 100.0:
-                logger.warning(u'资金不足，平掉全部浮仓!')
-                self.trader.close_lock = True
-                order_idlist = self.trader.close_all()
-                if wait_for_closed(order_idlist):
-                    logger.info(u'全部平仓成功!')
-                else:
-                    logger.info(u'平仓失败！')
-                self.trader.close_lock = False
+        if account.available / account.balance < self.reserve / 100.0:
+            logger.warning(u'资金不足，平掉全部浮仓!')
+            self.trader.close_lock = True
+            order_idlist = self.trader.close_all()
+            if wait_for_closed(order_idlist):
+                logger.info(u'全部平仓成功!')
+            else:
+                logger.info(u'平仓失败！')
+            self.trader.close_lock = False
 
     def run(self):
         while not self.trader.evt_stop.wait(self.interval):
