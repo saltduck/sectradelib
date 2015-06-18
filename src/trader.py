@@ -195,5 +195,5 @@ class BaseTrader(object):
                     logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
                         order.sys_id, order.filled_volume, order.closed_volume))
                     self.close_order(order)
-                    orig_orders.append(order.sys_id)
+                    orig_orders.append(order.id)
         return orig_orders
