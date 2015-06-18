@@ -9,6 +9,7 @@ import redisco
 from .quoteservice import current_price
 from .models.instrument import Instrument
 from .models.order import Order
+from .utils import logerror
 
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
@@ -50,11 +51,13 @@ class BaseStrategy(object):
             return False
         return True
 
+    @logerror
     def run(self, instid):
         if self.check(instid):
             inst = Instrument.objects.get_by_id(self.trader.monitors[instid].instrument_id)
             self._do_strategy(inst)
 
+    @logerror
     def _close_then_open(self, inst, direction, price, volume):
         to_be_closed = []
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
@@ -83,12 +86,12 @@ class BaseStrategy(object):
     def buy(self, inst, price, volume):
         logger.info(u'策略{0}: 买进{1}'.format(self.code, inst.name))
         if inst.is_trading:
-            threading.Thread(target=self._close_then_open, args=(inst, True, price, volume)).start()
+            threading.Thread(target=self._close_then_open, args=(inst, True, price, volume), name='BUY-'+self.trader.name).start()
 
     def sell(self, inst, price, volume=None):
         logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
-            threading.Thread(target=self._close_then_open, args=(inst, False, price, volume)).start()
+            threading.Thread(target=self._close_then_open, args=(inst, False, price, volume), name='SELL-'+self.trader.name).start()
 
     def _do_strategy(self, inst):
         raise NotImplementedError
@@ -99,11 +102,12 @@ class BaseStrategy(object):
 
 class CheckAvailableThread(threading.Thread):
     def __init__(self, trader, interval, reserve):
-        super(CheckAvailableThread, self).__init__(name='CheckAvailable')
+        super(CheckAvailableThread, self).__init__(name='CKAVAIL-'+trader.name)
         self.trader = trader
         self.interval = interval
         self.reserve = reserve
 
+    @logerror
     def run(self):
         account = self.trader.account
         while not self.trader.evt_stop.wait(self.interval):
@@ -120,7 +124,7 @@ class CheckAvailableThread(threading.Thread):
 
 class CheckStopThread(threading.Thread):
     def __init__(self, trader):
-        super(CheckStopThread, self).__init__(name='CheckStop')
+        super(CheckStopThread, self).__init__(name='CKSTOP-'+trader.name)
         self.trader = trader
 
     def set_stopprice(self, instrument, price, offset):
@@ -152,6 +156,7 @@ class CheckStopThread(threading.Thread):
         if not wait_for_closed(to_be_closed):
             logger.warning(u'止损平仓失败，请检查原因!')
 
+    @logerror
     def run(self):
         ps = rdb.pubsub()
         ps.subscribe('checkstop')

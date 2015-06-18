@@ -111,3 +111,12 @@ class CheckCtpMDThread(threading.Thread):
                 else:
                     logger.info(u'行情进程重启成功')
             self.last_value = v
+
+
+@decorator
+def logerror(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except Exception, e:
+        logger.exception(unicode(e))
+        return
