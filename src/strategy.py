@@ -205,5 +205,5 @@ class CheckUntradedOrderThread(threading.Thread):
             self.trader.query_order_status(order)
 
     def run(self):
-        while not self.trader.evt_stop.wait(1):
+        while not self.trader.evt_stop.wait(5):
             self.check()
