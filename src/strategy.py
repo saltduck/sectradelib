@@ -113,11 +113,8 @@ class CheckAvailableThread(threading.Thread):
         self.reserve = reserve
 
     @logerror
-    def run(self):
+    def check(self):
         account = self.trader.account
-        while not self.trader.evt_stop.wait(self.interval):
-            if not self.trader.can_trade():
-                continue
             if account.available / account.balance < self.reserve / 100.0:
                 logger.warning(u'资金不足，平掉全部浮仓!')
                 self.trader.close_lock = True
@@ -128,18 +125,25 @@ class CheckAvailableThread(threading.Thread):
                     logger.info(u'平仓失败！')
                 self.trader.close_lock = False
 
+    def run(self):
+        while not self.trader.evt_stop.wait(self.interval):
+            if self.trader.can_trade():
+                self.check()
+
 
 class CheckStopThread(threading.Thread):
     def __init__(self, trader):
         super(CheckStopThread, self).__init__(name='CKSTOP-'+trader.name)
         self.trader = trader
 
+    @logerror
     def set_stopprice(self, instrument, price, offset):
         # 根据最新价格计算浮动止损价
         for order in self.trader.opened_orders(instrument=instrument):
             with self.trader.lock:
                 order.set_stopprice(price, offset)
 
+    @logerror
     def check(self, instrument, price):
         # 检查是否触及止损价
         to_be_closed = []
@@ -163,7 +167,6 @@ class CheckStopThread(threading.Thread):
         if not wait_for_closed(to_be_closed):
             logger.warning(u'止损平仓失败，请检查原因!')
 
-    @logerror
     def run(self):
         ps = rdb.pubsub()
         ps.subscribe('checkstop')
@@ -189,3 +192,18 @@ class CheckStopThread(threading.Thread):
                 self.set_stopprice(instrument, cur_price, monitor.offset)
                 self.check(instrument, cur_price)
         logger.debug('CheckStopThread exited.')
+
+
+class CheckUntradedOrderThread(threading.Thread):
+    def __init__(self, trader):
+        super(CheckUntradedOrderThread, self).__init__(name='CkUTO-' + trader.name)
+        self.trader = trader
+    
+    @logerror
+    def check(self):
+        for order in self.trader.untraded_orders():
+            self.trader.query_order_status(order)
+
+    def run(self):
+        while not self.trader.evt_stop.wait(1):
+            self.check()

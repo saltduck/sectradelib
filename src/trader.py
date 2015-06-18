@@ -51,6 +51,9 @@ class BaseTrader(object):
     def opened_orders(self, *args, **kwargs):
         return self.account.opened_orders(*args, **kwargs)
 
+    def untraded_orders(self, *args, **kwargs):
+        return self.account.untraded_orders(*args, **kwargs)
+        
     def combined_positions(self):
         return self.account.combined_positions()
 
@@ -165,6 +168,9 @@ class BaseTrader(object):
     def query_history_trades(self, start_time=None, end_time=None):
         """ 查询历史成交 """
         raise NotImplementedError
+
+    def query_order_status(self, order):
+        pass
 
     def open_order(self, inst, price, volume, direction, strategy_code=''):
         """ 开仓。返回新订单。"""
