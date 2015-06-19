@@ -116,7 +116,11 @@ class Account(models.Model):
         balance.value += float(change)
         assert balance.is_valid(), balance.errors
         balance.save()
-        logger.debug(u'{3}：{0}{1}, 余额{2}{1}'.format(change, currency, balance.value, memo))
+        msg = u'{3}：{0}{1}, 余额{2}{1}'.format(change, currency, balance.value, memo)
+        if u'利润' in msg:
+            logger.info(msg)
+        else:
+            logger.debug(msg)
         
     def deposit(self, quantity, currency=''):
         currency = currency or self.default_currency
