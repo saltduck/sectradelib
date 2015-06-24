@@ -155,11 +155,12 @@ class CheckStopThread(threading.Thread):
                 direction = u'多'
             if direction:
                 logger.warning(
-                    u'合约{0}当前价格{1}触及{3}头止损价{2}，立即平仓!'.format(
+                    u'<策略{4}>合约{0}当前价格{1}触及{3}头止损价{2}，立即平仓!'.format(
                         order.instrument.name,
                         price,
                         order.stopprice,
                         direction,
+                        order.strategy_code,
                     )
                 )
                 self.trader.close_order(order)

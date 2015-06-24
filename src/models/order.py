@@ -174,6 +174,14 @@ class Order(models.Model):
         self.status = Order.OS_FILLED
         assert self.is_valid(), self.errors
         self.save()
+        logger.info(u'<策略{0}>成交回报: {1}{2}仓 合约={3} 价格={4} 数量={5}'.format(
+                self.strategy_code,
+                u'开' if self.is_open else u'平',
+                u'多' if self.is_long else u'空',
+                self.instrument.name,
+                price,
+                volume,
+            ))
         return t
 
     def set_stopprice(self, price, offset):

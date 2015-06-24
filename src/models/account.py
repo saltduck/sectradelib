@@ -146,6 +146,8 @@ class Account(models.Model):
         neworder.update_attributes(account=self, is_open=is_open, strategy_code=strategy_code)
         if orig_order:
             neworder.orig_order = orig_order
+            if not neworder.strategy_code:
+                neworder.strategy_code = orig_order.strategy_code
         assert neworder.is_valid(), neworder.errors
         neworder.save()
         return neworder
@@ -154,11 +156,11 @@ class Account(models.Model):
         trade = order.on_trade(price, volume, tradetime, execid)
         if not trade:
             return
-        self.book(-trade.commission, order.currency, u'收取手续费')
+        self.book(-trade.commission, order.currency, u'<策略{0}>收取手续费'.format(order.strategy_code))
         if not order.is_open:
             # 平仓
             order.on_close(trade)
-            self.book(trade.profit, order.currency, u'获取利润')
+            self.book(trade.profit, order.currency, u'<策略{0}>获取利润'.format(order.strategy_code))
             self.real_profits += trade.profit
         if not self.last_trade_time or self.last_trade_time < tradetime:
             self.last_trade_time = tradetime

@@ -124,6 +124,13 @@ class BaseTrader(object):
                 logger.warn(u'找不到本地订单号为{0}的订单'.format(local_id))
                 return False
             order.on_new(orderid, instid, direction, price, volume, exectime)
+            logger.info(u'<策略{0}>下单: {1}{2}仓 合约={3} 数量={4}'.format(
+                    order.strategy_code,
+                    u'开' if order.is_open else u'平',
+                    u'多' if order.is_long else u'空',
+                    order.instrument.name,
+                    volume
+                ))
 
     def on_reject(self, local_id, reason_code, reason_desc):
         with self.lock:
