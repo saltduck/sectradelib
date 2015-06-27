@@ -127,7 +127,7 @@ class BaseTrader(object):
             logger.info(u'<策略{0}>下单: {1}{2}仓 合约={3} 数量={4}'.format(
                     order.strategy_code,
                     u'开' if order.is_open else u'平',
-                    u'多' if order.is_long else u'空',
+                    u'多' if order.is_long == order.is_open else u'空',
                     order.instrument.name,
                     volume
                 ))
