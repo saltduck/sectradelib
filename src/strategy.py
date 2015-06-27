@@ -61,7 +61,7 @@ class BaseStrategy(object):
             self._do_strategy(inst, result)
 
     @logerror
-    def _close_then_open(self, inst, direction, price, volume):
+    def _close_then_open(self, inst, direction, price, volume=None):
         to_be_closed = []
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
             if order.can_close:
@@ -80,13 +80,13 @@ class BaseStrategy(object):
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=str(self.code))
         self.orders[inst.id].append(order.local_id)
         
-    def close(self, inst):
+    def close(self, inst, price):
         logger.info(u'策略{0}: 平仓{1}'.format(self.code, inst.name))
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
             if order.can_close:
-                self.trader.close_order(order, strategy_code=str(self.code))
+                self.trader.close_order(order, price, strategy_code=str(self.code))
 
-    def buy(self, inst, price, volume):
+    def buy(self, inst, price, volume=None):
         logger.info(u'策略{0}: 买进{1}'.format(self.code, inst.name))
         if inst.is_trading:
             threading.Thread(target=self._close_then_open, args=(inst, True, price, volume), name='BUY-'+self.trader.name).start()
