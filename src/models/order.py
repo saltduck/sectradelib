@@ -76,7 +76,8 @@ class Order(models.Model):
     volume = models.FloatField(indexed=False)
     status = models.IntegerField(default=OS_NONE)
     orig_order = models.ReferenceField('Order')
-    stopprice = models.FloatField(indexed=False)
+    stoploss = models.FloatField(indexed=False)     # 止损价
+    stopprofit = models.FloatField(indexed=False, default=0.0)   # 止赢价
 
     def __repr__(self):
         return u'<Order: {0.id}({0.instrument}:{0.opened_volume})>'.format(self)
@@ -184,20 +185,30 @@ class Order(models.Model):
             ))
         return t
 
-    def set_stopprice(self, price, offset):
+    def set_stopprice(self, price, offset_loss, offset_profit=0.0):
+        # 静态止赢价
+        if offset_profit and not self.stopprofit:
+            if self.is_long:
+                self.stopprofit = price + offset_profit
+            else:
+                self.stopprofit = price - offset_profit
+            assert self.is_valid(), self.errors
+            logger.debug('Order {0} set stop profit price to {1}'.format(
+                self.sys_id, self.stopprofit))
+            self.save()
         # 浮动止损价
         if self.is_long:
-            stopprice = price - offset
-            if self.stopprice and stopprice <= self.stopprice:
+            stoploss = price - offset_loss
+            if self.stoploss and stoploss <= self.stoploss:
                 return
         else:
-            stopprice = price + offset
-            if self.stopprice and stopprice >= self.stopprice:
+            stoploss = price + offset_loss
+            if self.stoploss and stoploss >= self.stoploss:
                 return
-        self.stopprice = float(stopprice)
+        self.stoploss = float(stoploss)
         assert self.is_valid(), self.errors
-        logger.debug('Order {0} set stopprice to {1}'.format(
-            self.sys_id, self.stopprice))
+        logger.debug('Order {0} set stop loss price to {1}'.format(
+            self.sys_id, self.stoploss))
         self.save()
 
     def on_close(self, trade):
@@ -216,9 +227,3 @@ class Order(models.Model):
             self.is_open = True
             assert self.is_valid(), self.errors
             self.save()
-
-
-class InstrumentEx(models.Model):
-    account = models.ReferenceField('Account')
-    instrument = models.ReferenceField(Instrument)
-    offset = models.FloatField(default=0.0, indexed=False)

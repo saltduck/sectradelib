@@ -8,7 +8,7 @@ import redisco
 
 from .models.instrument import Instrument
 from .models.account import Account, convert_currency
-from .models.order import Order, InstrumentEx
+from .models.order import Order
 
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
@@ -24,9 +24,16 @@ class BaseTrader(object):
         if not self.account.balances:
             self.account.deposit(10000.0)
         self.monitors = {}
+        self.offsets = {}
         for s in instrumentstr.split(','):
-            symbol, offset = s.split(':')
-            self.monitors[symbol.strip()] = float(offset)
+            try:
+                symbol, offset_loss, offset_profit = s.split(':')
+            except ValueError:
+                symbol, offset_loss = s.split(':')
+                offset_profit = 0
+            symbol = symbol.strip()
+            self.offsets[symbol] = (float(offset_loss), float(offset_profit))
+        logger.debug(str(self.offsets))
 
         self.close_lock = False
         self.is_logged = self.is_ready = self.runnable = False
@@ -61,16 +68,6 @@ class BaseTrader(object):
     def stop(self):
         self.evt_stop.set()
 
-    def add_instrument(self, symbol, offset):
-        instrument = Instrument.objects.filter(symbol=symbol.strip()).first()
-        rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
-        monitor = InstrumentEx.objects.get_or_create(account=self.account, instrument_id=instrument.id)
-        if offset is not None:
-            monitor.offset = offset
-            monitor.save()
-        self.monitors[instrument.secid] = monitor
-        logger.debug(u'add_instrument: {0}'.format(monitor))
-
     def user_login(self):
         pass
 
@@ -83,13 +80,17 @@ class BaseTrader(object):
     def on_logout(self):
         self.is_logged = False
 
+    def get_instrument_from_symbol(self, symbol):
+        return Instrument.objects.filter(symbol=symbol).first()
+
     def set_monitors(self):
-        _monitors = self.monitors.copy()
         self.monitors = {}
-        for symbol, offset in _monitors.items():
-            if isinstance(offset, InstrumentEx):
-                offset = offset.offset
-            self.add_instrument(symbol=symbol, offset=offset)
+        for symbol, offset in self.offsets.items():
+            symbol = symbol.strip()
+            instrument = self.get_instrument_from_symbol(symbol)
+            rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
+            self.monitors[symbol] = instrument
+            logger.debug(u'add_instrument: {0}'.format(instrument))
         logger.debug(u'Set monitors to {0}'.format(self.monitors))
 
     def ready_for_trade(self):
@@ -164,10 +165,11 @@ class BaseTrader(object):
             if order.is_open:
                 # 补仓或开新仓：按最新价设置止损价
                 try:
-                    monitor = self.monitors[order.instrument.secid]
+                    offset = self.offsets[order.instrument.secid]
                 except KeyError:
-                    monitor = self.monitors[order.instrument.product.prodid]
-                order.set_stopprice(price, monitor.offset)
+                    offset = self.offsets[order.instrument.product.prodid]
+                logger.debug(str(offset))
+                order.set_stopprice(price, *offset)
 
     def query_all_trades(self):
         """ 查询自从上次保存数据以来的所有成交历史 """

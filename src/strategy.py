@@ -48,7 +48,7 @@ class BaseStrategy(object):
         if self.trader.close_lock:
             logger.debug('In close lock!')
             return False
-        inst = Instrument.objects.get_by_id(self.trader.monitors[instid].instrument_id)
+        inst = Instrument.objects.get_by_id(self.trader.monitors[instid].id)
         if not inst.is_trading:
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
             return False
@@ -57,7 +57,7 @@ class BaseStrategy(object):
     @logerror
     def run(self, instid, result=None):
         if self.check(instid):
-            inst = Instrument.objects.get_by_id(self.trader.monitors[instid].instrument_id)
+            inst = Instrument.objects.get_by_id(self.trader.monitors[instid].id)
             self._do_strategy(inst, result)
 
     @logerror
@@ -137,28 +137,37 @@ class CheckStopThread(threading.Thread):
         self.trader = trader
 
     @logerror
-    def set_stopprice(self, instrument, price, offset):
+    def set_stopprice(self, instrument, price, offset_loss, offset_profit=0.0):
         # 根据最新价格计算浮动止损价
         for order in self.trader.opened_orders(instrument=instrument):
             with self.trader.lock:
-                order.set_stopprice(price, offset)
+                order.set_stopprice(price, offset_loss, offset_profit)
 
     @logerror
     def check(self, instrument, price):
-        # 检查是否触及止损价
+        # 检查是否触及止损或止赢价
         to_be_closed = []
         for order in self.trader.opened_orders(instrument=instrument):
             direction = u''
-            if order.opened_volume < 0 and price >= order.stopprice:
-                direction = u'空'
-            if order.opened_volume > 0 and price <= order.stopprice:
-                direction = u'多'
+            if order.opened_volume < 0 and price >= order.stoploss:
+                direction = u'空头止损'
+                stopprice = order.stoploss
+            if order.opened_volume > 0 and price <= order.stoploss:
+                direction = u'多头止损'
+                stopprice = order.stoploss
+            if order.stopprofit:
+                if order.opened_volume < 0 and price <= order.stopprofit:
+                    direction = u'空头止赢'
+                    stopprice = order.stopprofit
+                if order.opened_volume > 0 and price >= order.stopprofit:
+                    direction = u'多头止赢'
+                    stopprice = order.stopprofit
             if direction:
                 logger.warning(
-                    u'<策略{4}>合约{0}当前价格{1}触及{3}头止损价{2}，立即平仓!'.format(
+                    u'<策略{4}>合约{0}当前价格{1}触及{3}价{2}，立即平仓!'.format(
                         order.instrument.name,
                         price,
-                        order.stopprice,
+                        stopprice,
                         direction,
                         order.strategy_code,
                     )
@@ -166,7 +175,7 @@ class CheckStopThread(threading.Thread):
                 self.trader.close_order(order)
                 to_be_closed.append(order.id)
         if not wait_for_closed(to_be_closed):
-            logger.warning(u'止损平仓失败，请检查原因!')
+            logger.warning(u'止损(赢)平仓失败，请检查原因!')
 
     def run(self):
         ps = rdb.pubsub()
@@ -183,14 +192,14 @@ class CheckStopThread(threading.Thread):
                 if instrument is None:
                     logger.debug(u'非法合约代码: {0}'.format(instid))
                     continue
-                monitor = self.trader.monitors.get(instid)
-                if not monitor:
-                    monitor = self.trader.monitors.get(instrument.product.prodid)
-                if not monitor:
+                offset = self.trader.offsets.get(instid)
+                if not offset:
+                    offset = self.trader.offsets.get(instrument.product.prodid)
+                if not offset:
                     logger.debug(u'收到未监控合约{0}的checkstop消息, monitor={1}'.format(instid, self.trader.monitors))
                     continue
                 cur_price = current_price(instid, None)
-                self.set_stopprice(instrument, cur_price, monitor.offset)
+                self.set_stopprice(instrument, cur_price, *offset)
                 self.check(instrument, cur_price)
         logger.debug('CheckStopThread exited.')
 
