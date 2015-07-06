@@ -196,7 +196,10 @@ class CheckStopThread(threading.Thread):
                     continue
                 offset = self.trader.offsets.get(instid)
                 if not offset:
-                    offset = self.trader.offsets.get(instrument.product.prodid)
+                    try:
+                        offset = self.trader.offsets.get(instrument.product.prodid)
+                    except AttributeError:
+                        offset = None
                 if not offset:
                     logger.debug(u'收到未监控合约{0}的checkstop消息, monitor={1}'.format(instid, self.trader.monitors))
                     continue
