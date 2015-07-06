@@ -48,16 +48,18 @@ class BaseStrategy(object):
         if self.trader.close_lock:
             logger.debug('In close lock!')
             return False
-        inst = Instrument.objects.get_by_id(self.trader.monitors[instid].id)
+        inst = Instrument.objects.filter(secid=instid).first()
+        if not inst:
+            inst = Instrument.objects.get_by_id(self.trader.monitors[instid].id)
         if not inst.is_trading:
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
             return False
-        return True
+        return inst
 
     @logerror
     def run(self, instid, result=None):
-        if self.check(instid):
-            inst = Instrument.objects.get_by_id(self.trader.monitors[instid].id)
+        inst = self.check(instid)
+        if inst:
             self._do_strategy(inst, result)
 
     @logerror
