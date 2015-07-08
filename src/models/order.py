@@ -52,7 +52,10 @@ class Trade(models.Model):
             logger.debug('Trade {0} against {1} close volume={2}'.format(self.exec_id, orig_trade.exec_id, vol))
             self.closed_volume -= vol
             orig_trade.closed_volume += vol
-            self.profit += self.order.instrument.amount(self.price - orig_trade.price, vol)
+            if self.order.instrument.indirect_quotation:
+                self.profit += self.order.instrument.amount(orig_trade.price, vol) - self.order.instrument.amount(self.price, vol)
+            else:
+                self.profit += self.order.instrument.amount(self.price - orig_trade.price, vol)
             assert orig_trade.is_valid(), orig_trade.errors
             orig_trade.save()
         assert self.is_valid(), self.errors

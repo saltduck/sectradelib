@@ -34,6 +34,8 @@ class Instrument(models.Model):
         return self.symbol
 
     def amount(self, price, volume):
+        if not price:
+            return 0.0
         if self.indirect_quotation:
             return volume * self.multiplier / price
         else:
