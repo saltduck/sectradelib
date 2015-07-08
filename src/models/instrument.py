@@ -15,7 +15,10 @@ class Instrument(models.Model):
     product = models.ReferenceField('Product')
     quoted_currency = models.Attribute(required=True, indexed=False)
     indirect_quotation = models.BooleanField(indexed=False)
+    ndigits = models.IntegerField(indexed=False, default=2)
     multiplier = models.FloatField(indexed=False)
+    open_commission_rate = models.FloatField(indexed=False, default=0)
+    close_commission_rate = models.FloatField(indexed=False, default=0)
     tick_size = models.FloatField(indexed=False)
     tick_value = models.FloatField(indexed=False)
     min_order_volume = models.FloatField(indexed=False, default=1.0)
@@ -41,6 +44,17 @@ class Instrument(models.Model):
             return abs(self.amount(price, volume) * self.long_margin_ratio)
         else:
             return abs(self.amount(price, volume) * self.short_margin_ratio)
+
+    def calc_commission(self, price, volume, is_open):
+        if is_open:
+            if self.open_commission_rate is None:
+                self.open_commission_rate = 0.000025
+            commission = abs(self.amount(price, volume)) * self.open_commission_rate
+        else:
+            if self.short_margin_ratio is None:
+                self.short_margin_ratio = 0.000025
+            commission = abs(self.amount(price, volume)) * self.close_commission_rate
+        return round(commission, self.ndigits)
 
     @classmethod
     def symbol2id(cls, symbol):

@@ -30,15 +30,12 @@ class Trade(models.Model):
     def opened_amount(self):
         return self.order.instrument.amount(self.price, self.opened_volume)
     
-    def on_trade(self, price, volume, trade_time, exec_id):
+    def on_trade(self, price, volume, trade_time, exec_id, is_open):
         self.price = float(price)
         self.volume = float(volume)
         self.trade_time = trade_time
         self.exec_id = exec_id
-        commission = abs(self.order.instrument.amount(price, volume)) * 0.000025
-        ndigits = 0 if self.order.instrument.quoted_currency == 'JPY' else 2
-        commission = round(commission, ndigits)
-        self.commission = commission
+        self.commission = self.order.instrument.calc_commission(price, volume, is_open)
         assert self.is_valid(), self.errors
         self.save()
 
@@ -174,7 +171,7 @@ class Order(models.Model):
         if not self.is_long:
             volume = -volume
         t = Trade(order=self)
-        t.on_trade(price, volume, tradetime, execid)
+        t.on_trade(price, volume, tradetime, execid, self.is_open)
         self.status = Order.OS_FILLED
         assert self.is_valid(), self.errors
         self.save()
