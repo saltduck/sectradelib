@@ -24,18 +24,18 @@ class Trade(models.Model):
 
     @property
     def amount(self):
-        return self.price * self.volume * self.order.instrument.multiplier
+        return self.order.instrument.amount(self.price, self.volume)
 
     @property
     def opened_amount(self):
-        return self.price * self.opened_volume * self.order.instrument.multiplier
+        return self.order.instrument.amount(self.price, self.opened_volume)
     
     def on_trade(self, price, volume, trade_time, exec_id):
         self.price = float(price)
         self.volume = float(volume)
         self.trade_time = trade_time
         self.exec_id = exec_id
-        commission = abs(price * volume * self.order.instrument.multiplier * 0.000025)
+        commission = abs(self.order.instrument.amount(price, volume)) * 0.000025
         ndigits = 0 if self.order.instrument.quoted_currency == 'JPY' else 2
         commission = round(commission, ndigits)
         self.commission = commission
@@ -55,7 +55,7 @@ class Trade(models.Model):
             logger.debug('Trade {0} against {1} close volume={2}'.format(self.exec_id, orig_trade.exec_id, vol))
             self.closed_volume -= vol
             orig_trade.closed_volume += vol
-            self.profit += (self.price - orig_trade.price) * vol * self.order.instrument.multiplier
+            self.profit += self.order.instrument.amount(self.price - orig_trade.price, vol)
             assert orig_trade.is_valid(), orig_trade.errors
             orig_trade.save()
         assert self.is_valid(), self.errors
@@ -124,12 +124,15 @@ class Order(models.Model):
 
     @property
     def trade_amt(self):
-        return sum([trade.price * trade.volume * self.instrument.multiplier for trade in self.trades])
+        return sum([trade.amount for trade in self.trades])
     
     @property
     def avg_fill_price(self):
         if self.filled_volume:
-            return self.trade_amt / self.filled_volume / self.instrument.multiplier
+            if self.instrument.indirect_quotation:
+                return self.filled_volume * self.instrument.multiplier / self.trade_amt
+            else:
+                return self.trade_amt / (self.filled_volume * self.instrument.multiplier)
         return None
 
     @property
@@ -147,7 +150,7 @@ class Order(models.Model):
 
     def float_profit(self, cur_price=None):
         cur_price = cur_price or self.cur_price
-        return cur_price * self.opened_volume * self.instrument.multiplier - self.opened_amount
+        return self.instrument.amount(cur_price,  self.opened_volume) - self.opened_amount
     
     def on_new(self, orderid, instid, direction, price, volume, exectime):
         instrument = Instrument.objects.filter(secid=instid).first()

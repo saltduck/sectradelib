@@ -14,6 +14,7 @@ class Instrument(models.Model):
     exchangeid = models.Attribute()
     product = models.ReferenceField('Product')
     quoted_currency = models.Attribute(required=True, indexed=False)
+    indirect_quotation = models.BooleanField(indexed=False)
     multiplier = models.FloatField(indexed=False)
     tick_size = models.FloatField(indexed=False)
     tick_value = models.FloatField(indexed=False)
@@ -29,11 +30,17 @@ class Instrument(models.Model):
     def __repr__(self):
         return self.symbol
 
+    def amount(self, price, volume):
+        if self.indirect_quotation:
+            return volume * self.multiplier / price
+        else:
+            return volume * self.multiplier * price
+
     def calc_margin(self, price, volume, direction=None):
         if direction:
-            return abs(volume * price * self.multiplier * self.long_margin_ratio)
+            return abs(self.amount(price, volume) * self.long_margin_ratio)
         else:
-            return abs(volume * price * self.multiplier * self.short_margin_ratio)
+            return abs(self.amount(price, volume) * self.short_margin_ratio)
 
     @classmethod
     def symbol2id(cls, symbol):
