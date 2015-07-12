@@ -151,12 +151,13 @@ class CheckStopThread(threading.Thread):
         to_be_closed = []
         for order in self.trader.opened_orders(instrument=instrument):
             direction = u''
-            if order.opened_volume < 0 and price >= order.stoploss:
-                direction = u'空头止损'
-                stopprice = order.stoploss
-            if order.opened_volume > 0 and price <= order.stoploss:
-                direction = u'多头止损'
-                stopprice = order.stoploss
+            if order.stoploss:
+                if order.opened_volume < 0 and price >= order.stoploss:
+                    direction = u'空头止损'
+                    stopprice = order.stoploss
+                if order.opened_volume > 0 and price <= order.stoploss:
+                    direction = u'多头止损'
+                    stopprice = order.stoploss
             if order.stopprofit:
                 if order.opened_volume < 0 and price <= order.stopprofit:
                     direction = u'空头止赢'
@@ -194,7 +195,7 @@ class CheckStopThread(threading.Thread):
                 if instrument is None:
                     logger.debug(u'非法合约代码: {0}'.format(instid))
                     continue
-                offset = self.trader.offsets.get(instid)
+                offset = self.trader.offsets.get(instrument.symbol)
                 if not offset:
                     try:
                         offset = self.trader.offsets.get(instrument.product.prodid)

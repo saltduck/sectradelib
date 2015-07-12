@@ -165,10 +165,9 @@ class BaseTrader(object):
             if order.is_open:
                 # 补仓或开新仓：按最新价设置止损价
                 try:
-                    offset = self.offsets[order.instrument.secid]
+                    offset = self.offsets[order.instrument.symbol]
                 except KeyError:
                     offset = self.offsets[order.instrument.product.prodid]
-                logger.debug(str(offset))
                 order.set_stopprice(price, *offset)
 
     def query_all_trades(self):

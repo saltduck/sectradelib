@@ -76,7 +76,7 @@ class Order(models.Model):
     volume = models.FloatField(indexed=False)
     status = models.IntegerField(default=OS_NONE)
     orig_order = models.ReferenceField('Order')
-    stoploss = models.FloatField(indexed=False)     # 止损价
+    stoploss = models.FloatField(indexed=False, default=0.0)     # 止损价
     stopprofit = models.FloatField(indexed=False, default=0.0)   # 止赢价
 
     def __repr__(self):
@@ -188,7 +188,7 @@ class Order(models.Model):
             ))
         return t
 
-    def set_stopprice(self, price, offset_loss, offset_profit=0.0):
+    def set_stopprice(self, price, offset_loss=0.0, offset_profit=0.0):
         # 静态止赢价
         if offset_profit and not self.stopprofit:
             if self.is_long:
@@ -200,19 +200,20 @@ class Order(models.Model):
                 self.sys_id, self.stopprofit))
             self.save()
         # 浮动止损价
-        if self.is_long:
-            stoploss = price - offset_loss
-            if self.stoploss and stoploss <= self.stoploss:
-                return
-        else:
-            stoploss = price + offset_loss
-            if self.stoploss and stoploss >= self.stoploss:
-                return
-        self.stoploss = float(stoploss)
-        assert self.is_valid(), self.errors
-        logger.debug('Order {0} set stop loss price to {1}'.format(
-            self.sys_id, self.stoploss))
-        self.save()
+        if offset_loss:
+            if self.is_long:
+                stoploss = price - offset_loss
+                if self.stoploss and stoploss <= self.stoploss:
+                    return
+            else:
+                stoploss = price + offset_loss
+                if self.stoploss and stoploss >= self.stoploss:
+                    return
+            self.stoploss = float(stoploss)
+            assert self.is_valid(), self.errors
+            logger.debug('Order {0} set stop loss price to {1}'.format(
+                self.sys_id, self.stoploss))
+            self.save()
 
     def on_close(self, trade):
         trade.on_close()
