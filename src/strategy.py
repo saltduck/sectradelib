@@ -146,7 +146,7 @@ class CheckStopThread(threading.Thread):
                 order.set_stopprice(price, offset_loss, offset_profit)
 
     def close_order(self, order):
-        self.trader.close_order(order)
+        self.trader.close_order(order, strategy_code=order.strategy_code)
 
     @logerror
     def check(self, instrument, price):
