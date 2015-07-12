@@ -145,6 +145,9 @@ class CheckStopThread(threading.Thread):
             with self.trader.lock:
                 order.set_stopprice(price, offset_loss, offset_profit)
 
+    def close_order(self, order):
+        self.trader.close_order(order)
+
     @logerror
     def check(self, instrument, price):
         # 检查是否触及止损或止赢价
@@ -175,7 +178,7 @@ class CheckStopThread(threading.Thread):
                         order.strategy_code,
                     )
                 )
-                self.trader.close_order(order)
+                self.close_order(order)
                 to_be_closed.append(order.id)
         if not wait_for_closed(to_be_closed):
             logger.warning(u'止损(赢)平仓失败，请检查原因!')
