@@ -53,10 +53,11 @@ class Instrument(models.Model):
                 self.open_commission_rate = 0.000025
             commission = abs(self.amount(price, volume)) * self.open_commission_rate
         else:
-            if self.short_margin_ratio is None:
-                self.short_margin_ratio = 0.000025
+            if self.close_commission_rate is None:
+                self.close_commission_rate = 0.000025
             commission = abs(self.amount(price, volume)) * self.close_commission_rate
-        return round(commission, self.ndigits)
+        ndigits = self.ndigits or 2
+        return round(commission, ndigits)
 
     @classmethod
     def symbol2id(cls, symbol):
