@@ -71,7 +71,7 @@ class Order(models.Model):
     instrument = models.ReferenceField(Instrument)
     is_long = models.BooleanField(indexed=False)
     is_open = models.BooleanField(indexed=True)
-    order_time = models.DateTimeField(indexed=False)
+    order_time = models.DateTimeField()
     price = models.FloatField(indexed=False)
     volume = models.FloatField(indexed=False)
     status = models.IntegerField(default=OS_NONE)
@@ -150,7 +150,10 @@ class Order(models.Model):
 
     def float_profit(self, cur_price=None):
         cur_price = cur_price or self.cur_price
-        return self.instrument.amount(cur_price,  self.opened_volume) - self.opened_amount
+        profit = self.instrument.amount(cur_price,  self.opened_volume) - self.opened_amount
+        if self.instrument.indirect_quotation:
+            profit *= -1
+        return profit
     
     def on_new(self, orderid, instid, direction, price, volume, exectime):
         instrument = Instrument.objects.filter(secid=instid).first()
