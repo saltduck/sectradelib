@@ -41,7 +41,7 @@ class BaseTrader(object):
         logger.debug(str(self.offsets))
 
         self.close_lock = False
-        self.is_logged = self.is_ready = self.runnable = False
+        self.is_logged = self.is_ready = False
         self.evt_stop = threading.Event()
         self.lock = threading.RLock()
     
