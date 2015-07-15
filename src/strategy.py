@@ -25,7 +25,7 @@ def wait_for_closed(orders, trader):
         sleep(1)
         for order in orders:
             if order.orig_order is None or order.orig_order.is_closed():
-                orders.remove(oid)
+                orders.remove(order)
     if orders:
         trader.cancel_orders(orders)
     return not bool(orders)
