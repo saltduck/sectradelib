@@ -29,10 +29,15 @@ class BaseTrader(object):
             try:
                 symbol, offset_loss, offset_profit = s.split(':')
             except ValueError:
-                symbol, offset_loss = s.split(':')
                 offset_profit = 0
+                try:
+                    symbol, offset_loss = s.split(':')
+                except ValueError:
+                    offset_loss = 0
+                    symbol = s
             symbol = symbol.strip()
-            self.offsets[symbol] = (float(offset_loss), float(offset_profit))
+            if symbol:
+                self.offsets[symbol] = (float(offset_loss), float(offset_profit))
         logger.debug(str(self.offsets))
 
         self.close_lock = False
