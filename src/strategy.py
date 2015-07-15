@@ -170,12 +170,13 @@ class CheckStopThread(threading.Thread):
                     stopprice = order.stopprofit
             if direction:
                 logger.warning(
-                    u'<策略{4}>合约{0}当前价格{1}触及{3}价{2}，立即平仓!'.format(
+                    u'<策略{4}>合约{0}当前价格{1}触及订单{5}{3}价{2}，立即平仓!'.format(
                         order.instrument.name,
                         price,
                         stopprice,
                         direction,
                         order.strategy_code,
+                        order.sys_id,
                     )
                 )
                 self.close_order(order)
