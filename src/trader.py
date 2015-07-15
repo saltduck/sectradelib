@@ -212,3 +212,6 @@ class BaseTrader(object):
                     self.close_order(order)
                     orig_orders.append(order.id)
         return orig_orders
+
+    def cancel_orders(self, orders):
+        pass
