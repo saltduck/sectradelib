@@ -29,14 +29,19 @@ class BaseTrader(object):
             try:
                 symbol, offset_loss, offset_profit = s.split(':')
             except ValueError:
-                symbol, offset_loss = s.split(':')
                 offset_profit = 0
+                try:
+                    symbol, offset_loss = s.split(':')
+                except ValueError:
+                    offset_loss = 0
+                    symbol = s
             symbol = symbol.strip()
-            self.offsets[symbol] = (float(offset_loss), float(offset_profit))
+            if symbol:
+                self.offsets[symbol] = (float(offset_loss), float(offset_profit))
         logger.debug(str(self.offsets))
 
         self.close_lock = False
-        self.is_logged = self.is_ready = self.runnable = False
+        self.is_logged = self.is_ready = False
         self.evt_stop = threading.Event()
         self.lock = threading.RLock()
     
@@ -83,12 +88,14 @@ class BaseTrader(object):
     def get_instrument_from_symbol(self, symbol):
         return Instrument.objects.filter(symbol=symbol).first()
 
-    def set_monitors(self):
+    def set_monitors(self, publish=True):
         self.monitors = {}
         for symbol, offset in self.offsets.items():
             symbol = symbol.strip()
             instrument = self.get_instrument_from_symbol(symbol)
-            rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
+            if publish:
+                rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
+                rdb.publish('strategymonitor', symbol)      # Notify strategy service
             self.monitors[symbol] = instrument
             logger.debug(u'add_instrument: {0}'.format(instrument))
         logger.debug(u'Set monitors to {0}'.format(self.monitors))
@@ -182,7 +189,7 @@ class BaseTrader(object):
         pass
 
     def open_order(self, inst, price, volume, direction, strategy_code=''):
-        """ 开仓。返回新订单。"""
+        """ 开仓。返回新订单 or None。"""
         with self.lock:
             if not price:
                 local_id = self.open_market_order(inst, volume, direction)
@@ -192,7 +199,7 @@ class BaseTrader(object):
                 return self.account.create_order(local_id, True, strategy_code)
 
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
-        """ 平仓。返回平仓订单。"""
+        """ 平仓。返回平仓订单 or None。"""
         with self.lock:
             volume = volume or abs(order.opened_volume)
             if not price:
@@ -203,15 +210,17 @@ class BaseTrader(object):
                 return self.account.create_order(local_id, False, strategy_code, order)
 
     def close_all(self, inst=None):
+        """ 平掉指定合约的所有浮仓。返回平仓单列表。"""
         with self.lock:
-            orig_orders = []
+            orders = []
             for order in self.opened_orders(inst):
                 if order.can_close:
                     logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
                         order.sys_id, order.filled_volume, order.closed_volume))
-                    self.close_order(order)
-                    orig_orders.append(order.id)
-        return orig_orders
+                    neworder = self.close_order(order)
+                    if neworder:
+                        orders.append(neworder)
+            return orders
 
     def cancel_orders(self, orders):
         pass
