@@ -94,6 +94,15 @@ class Order(models.Model):
         return self.status in (Order.OS_FILLED, Order.OS_CANCELED)
 
     @property
+    def can_cancel(self):
+        if self.status in (Order.OS_NONE, Order.OS_NEW):
+            return True
+        elif self.status == Order.OS_FILLED:
+            if abs(self.filled_volume) < abs(self.volume):
+                return True
+        return False
+    
+    @property
     def trades(self):
         return Trade.objects.filter(order_id=self.id).order('trade_time')
     

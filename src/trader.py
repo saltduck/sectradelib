@@ -189,7 +189,7 @@ class BaseTrader(object):
         pass
 
     def open_order(self, inst, price, volume, direction, strategy_code=''):
-        """ 开仓。返回新订单。"""
+        """ 开仓。返回新订单 or None。"""
         with self.lock:
             if not price:
                 local_id = self.open_market_order(inst, volume, direction)
@@ -199,7 +199,7 @@ class BaseTrader(object):
                 return self.account.create_order(local_id, True, strategy_code)
 
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
-        """ 平仓。返回平仓订单。"""
+        """ 平仓。返回平仓订单 or None。"""
         with self.lock:
             volume = volume or abs(order.opened_volume)
             if not price:
@@ -210,15 +210,17 @@ class BaseTrader(object):
                 return self.account.create_order(local_id, False, strategy_code, order)
 
     def close_all(self, inst=None):
+        """ 平掉指定合约的所有浮仓。返回平仓单列表。"""
         with self.lock:
-            orig_orders = []
+            orders = []
             for order in self.opened_orders(inst):
                 if order.can_close:
                     logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
                         order.sys_id, order.filled_volume, order.closed_volume))
-                    self.close_order(order)
-                    orig_orders.append(order.id)
-        return orig_orders
+                    neworder = self.close_order(order)
+                    if neworder:
+                        orders.append(neworder)
+            return orders
 
     def cancel_orders(self, orders):
         pass

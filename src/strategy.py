@@ -15,22 +15,20 @@ from .utils import logerror
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 
-def wait_for_closed(order_idlist):
-    """ 等待指定订单全部平仓完毕，超过30秒则放弃。
-    返回未成功平仓订单id列表，若已全部成功平仓则返回空列表。"""
-    cnt = 0
-    # copy and unique elements AND keep origin order_idlist immutable
-    order_idlist = list(set(order_idlist))
-    while order_idlist:
+def wait_for_closed(orders, trader):
+    """ 等待指定平仓单全部平仓完毕，超过30秒则撤单。
+    返回是否全部成功平仓。"""
+    orders = list(set(orders))
+    for i in range(30):
         sleep(1)
-        if cnt >= 30:
+        if not orders:
             break
-        cnt += 1
-        for oid in order_idlist:
-            order = Order.objects.get_by_id(oid)
-            if order is None or order.is_closed():
+        for order in orders:
+            if order.orig_order is None or order.orig_order.is_closed():
                 order_idlist.remove(oid)
-    return order_idlist
+    if orders:
+        trader.cancel_orders(orders)
+    return not bool(orders)
 
 
 class BaseStrategy(object):
@@ -71,8 +69,8 @@ class BaseStrategy(object):
                 logger.debug(u'先行平仓{0}'.format(order.sys_id))
                 neworder = self.trader.close_order(order, strategy_code=str(self.code))
                 if neworder:
-                    to_be_closed.append(order.id)
-        if wait_for_closed(to_be_closed):
+                    to_be_closed.append(neworder)
+        if not wait_for_closed(to_be_closed, self.trader):
             logger.warning(u'平仓失败，放弃执行策略!')
             return
         volume = volume or self.get_max_volume(inst, direction)
@@ -121,12 +119,8 @@ class CheckAvailableThread(threading.Thread):
         if account.available / account.balance < self.reserve / 100.0:
             logger.warning(u'资金不足，平掉全部浮仓!')
             self.trader.close_lock = True
-            order_idlist = self.trader.close_all()
-            result = wait_for_closed(order_idlist)
-            if result:
-                self.trader.cancel_orders(
-                    [Order.objects.get_by_id(oid) for oid in result]
-                )
+            orders = self.trader.close_all()
+            if not wait_for_closed(orders, self.trader):
                 logger.info(u'平仓失败！')
             else:
                 logger.info(u'全部平仓成功!')
@@ -184,13 +178,10 @@ class CheckStopThread(threading.Thread):
                         order.sys_id,
                     )
                 )
-                self.close_order(order)
-                to_be_closed.append(order.id)
-        result = wait_for_closed(to_be_closed)
-        if result:
-            self.trader.cancel_orders(
-                [Order.objects.get_by_id(oid) for oid in result]
-            )
+                neworder = self.close_order(order)
+                if neworder:
+                    to_be_closed.append(neworder)
+        if not wait_for_closed(to_be_closed, self.trader):
             logger.warning(u'止损(赢)平仓失败，请检查原因!')
 
     def run(self):
