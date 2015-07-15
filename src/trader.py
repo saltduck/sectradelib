@@ -88,12 +88,14 @@ class BaseTrader(object):
     def get_instrument_from_symbol(self, symbol):
         return Instrument.objects.filter(symbol=symbol).first()
 
-    def set_monitors(self):
+    def set_monitors(self, publish=True):
         self.monitors = {}
         for symbol, offset in self.offsets.items():
             symbol = symbol.strip()
             instrument = self.get_instrument_from_symbol(symbol)
-            rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
+            if publish:
+                rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
+                rdb.publish('strategymonitor', symbol)      # Notify strategy service
             self.monitors[symbol] = instrument
             logger.debug(u'add_instrument: {0}'.format(instrument))
         logger.debug(u'Set monitors to {0}'.format(self.monitors))
