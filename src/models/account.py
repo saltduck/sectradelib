@@ -63,8 +63,7 @@ class Account(models.Model):
             queryset = queryset.filter(instrument_id=instrument.id)
         if strategy_code:
             queryset = queryset.filter(strategy_code=strategy_code)
-        orders = list(queryset.filter(status=Order.OS_NONE))
-        orders.extend(list(queryset.filter(status=Order.OS_NEW)))
+        orders = list(queryset.filter(status=Order.OS_NEW))
         queryset = queryset.filter(status=Order.OS_FILLED)
         orders.extend([o for o in queryset if abs(o.filled_volume) < abs(o.volume)])
         return orders

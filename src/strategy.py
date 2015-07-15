@@ -20,9 +20,9 @@ def wait_for_closed(orders, trader):
     返回是否全部成功平仓。"""
     orders = list(set(orders))
     for i in range(30):
-        sleep(1)
         if not orders:
             break
+        sleep(1)
         for order in orders:
             if order.orig_order is None or order.orig_order.is_closed():
                 order_idlist.remove(oid)
