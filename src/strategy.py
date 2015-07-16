@@ -18,6 +18,7 @@ rdb = redisco.get_client()
 def wait_for_closed(orders, trader):
     """ 等待指定平仓单全部平仓完毕，超过30秒则撤单。
     返回是否全部成功平仓。"""
+    logger.debug(u'等待平仓单{0}执行成功...'.format(orders))
     orders = list(set(orders))
     for i in range(30):
         if not orders:
@@ -28,6 +29,7 @@ def wait_for_closed(orders, trader):
                 orders.remove(order)
     if orders:
         trader.cancel_orders(orders)
+    logger.debug(u'未成功平仓订单：{0}'.format(orders))
     return not bool(orders)
 
 
