@@ -202,6 +202,8 @@ class BaseTrader(object):
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
         """ 平仓。返回平仓订单 or None。"""
         with self.lock:
+            if order.can_cancel:
+                self.cancel_orders([order])
             volume = volume or abs(order.opened_volume)
             if not price:
                 local_id = self.close_market_order(order, volume)
