@@ -3,6 +3,7 @@ import logging
 import threading
 from datetime import datetime
 import time
+import json
 
 import redisco
 
@@ -95,7 +96,7 @@ class BaseTrader(object):
             instrument = self.get_instrument_from_symbol(symbol)
             if publish:
                 rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
-                rdb.publish('strategymonitor', symbol)      # Notify strategy service
+                rdb.publish('strategymonitor', json.dumps((symbol, instrument.id)))      # Notify strategy service
             self.monitors[symbol] = instrument
             logger.debug(u'add_instrument: {0}'.format(instrument))
         logger.debug(u'Set monitors to {0}'.format(self.monitors))
