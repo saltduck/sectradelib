@@ -18,6 +18,8 @@ rdb = redisco.get_client()
 def wait_for_closed(orders, trader):
     """ 等待指定平仓单全部平仓完毕，超过30秒则撤单。
     返回是否全部成功平仓。"""
+    if not orders:
+        return True
     logger.debug(u'等待平仓单{0}执行成功...'.format(orders))
     orders = list(set(orders))
     for i in range(30):
@@ -147,7 +149,7 @@ class CheckStopThread(threading.Thread):
                 order.set_stopprice(price, offset_loss, offset_profit)
 
     def close_order(self, order):
-        self.trader.close_order(order, strategy_code=order.strategy_code)
+        return self.trader.close_order(order, strategy_code=order.strategy_code)
 
     @logerror
     def check(self, instrument, price):
