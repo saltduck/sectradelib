@@ -159,6 +159,7 @@ class BaseTrader(object):
                 return
             order.status = Order.OS_CANCELED
             order.save()
+            logger.info(u'订单(本地订单号：{0})已撤销'.format(local_id))
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime):
         with self.lock:
