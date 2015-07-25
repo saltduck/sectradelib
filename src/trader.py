@@ -23,7 +23,8 @@ class BaseTrader(object):
         if not self.account.last_trade_time:
             self.account.last_trade_time = datetime.utcnow()
         if not self.account.balances:
-            self.account.deposit(10000.0)
+            self.account.deposit(0.0)
+        self.max_balance = 0.0  # 本次运行（当天）最高资金余额
         self.monitors = {}
         self.offsets = {}
         for s in instrumentstr.split(','):
@@ -86,6 +87,9 @@ class BaseTrader(object):
     def on_logout(self):
         self.is_logged = False
 
+    def on_day_switch(self):
+        self.max_balance = 0.0  # 最高资金余额每天清零
+
     def get_instrument_from_symbol(self, symbol):
         return Instrument.objects.filter(symbol=symbol).first()
 
@@ -107,6 +111,10 @@ class BaseTrader(object):
         self.is_ready = True
 
     def on_account_changed(self):
+        # 记录最高资金余额
+        if self.account.balance > self.max_balance:
+            self.max_balance = self.account.balance
+        # 刷新显示
         if hasattr(self, 'infowin'):
             self.infowin.paint()
 
