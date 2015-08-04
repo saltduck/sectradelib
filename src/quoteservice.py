@@ -101,6 +101,7 @@ class QuoteService(threading.Thread):
         df2.dropna(axis=0, inplace=True)
         logger.debug(df2)
         df3 = df2[:-1]
+        df3 = df3[df3.high > 0] # remove non-trading time data
         if df3.empty:
             return False
         df3['securityID'] = inst
@@ -112,7 +113,7 @@ class QuoteService(threading.Thread):
         self.do_save(df3)
         self.last_save_time[inst] = df3.ix[-1].name
         with self.tick_lock:
-            self.tickdata[inst] = [tick for tick in self.tickdata[inst] if tick.entry_time >= self.last_save_time[inst]]
+            self.tickdata[inst] = [tick for tick in self.tickdata[inst] if tick.entry_time >= self.last_save_time[inst] and tick.price > 0]
             self.tickdata[inst].sort(key=attrgetter('entry_time'))
         logger.debug('Saved @ {0}'.format(self.last_save_time[inst]))
         return True
