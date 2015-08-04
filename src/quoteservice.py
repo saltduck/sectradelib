@@ -91,7 +91,7 @@ class QuoteService(threading.Thread):
         if not ticks:
             return False
         if (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
-            logger.debug('No enough data')
+            # logger.debug('No enough data')
             return False
         logger.info(u'保存合约{0}的分钟数据...'.format(inst))
         df = pd.DataFrame.from_records(ticks, index='entry_time')
