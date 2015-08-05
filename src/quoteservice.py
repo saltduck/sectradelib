@@ -27,6 +27,7 @@ class QuoteService(threading.Thread):
     def __init__(self):
         super(QuoteService, self).__init__(name='QUOTESERVICE')
         self.tickdata = defaultdict(list)
+        self.market_closed = defaultdict(bool)
         self.last_save_time = {}
         self.interval = 10
         self.mdapis = []
@@ -88,9 +89,10 @@ class QuoteService(threading.Thread):
 
     def save_inst_mindata(self, inst):
         ticks = self.tickdata[inst]
+        market_closed = self.market_closed[inst]
         if not ticks:
             return False
-        if (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
+        if not market_closed and (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
             # logger.debug('No enough data')
             return False
         logger.info(u'保存合约{0}的分钟数据...'.format(inst))
@@ -98,9 +100,12 @@ class QuoteService(threading.Thread):
         rule = '{0}s'.format(self.interval)
         df2 = df.resample(rule, label='right', how={'price': 'ohlc'}).price
         df2['volume'] = df.resample(rule, label='right', how={'volume': 'sum'})
-        df2.dropna(axis=0, inplace=True)
-        logger.debug(df2)
-        df3 = df2[:-1]
+        df3 = df2.dropna(axis=0)
+        logger.debug(df3)
+        if market_closed:
+            self.market_closed[inst] = False
+        else:
+            df3 = df3[:-1]
         if df3.empty:
             return False
         df3['securityID'] = inst
