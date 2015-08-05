@@ -22,13 +22,14 @@ class MarketDataApi(object):
 
     def process_tick(self, tick):
         # logger.debug(str(tick))
-        secid = tick.securityID
-        rdb.hset('current_price', secid, tick.price)
-        if hasattr(tick, 'b_price'):
-            rdb.hset('current_b_price', secid, tick.b_price)
-        if hasattr(tick, 's_price'):
-            rdb.hset('current_s_price', secid, tick.s_price)
-        rdb.publish('checkstop', secid)
+        if tick.price:
+            secid = tick.securityID
+            rdb.hset('current_price', secid, tick.price)
+            if hasattr(tick, 'b_price'):
+                rdb.hset('current_b_price', secid, tick.b_price)
+            if hasattr(tick, 's_price'):
+                rdb.hset('current_s_price', secid, tick.s_price)
+            rdb.publish('checkstop', secid)
         with self.quote_service.tick_lock:
             self.quote_service.tickdata[secid].append(tick)
 
