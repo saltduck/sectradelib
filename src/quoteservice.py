@@ -91,6 +91,7 @@ class QuoteService(threading.Thread):
         ticks = self.tickdata[inst]
         market_closed = self.market_closed[inst]
         if not ticks:
+            self.quote_service.market_closed[dp.InstrumentID] = False
             return False
         if not market_closed and (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
             # logger.debug('No enough data')
