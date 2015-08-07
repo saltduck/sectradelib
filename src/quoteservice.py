@@ -89,11 +89,10 @@ class QuoteService(threading.Thread):
 
     def save_inst_mindata(self, inst):
         ticks = self.tickdata[inst]
-        market_closed = self.market_closed[inst]
         if not ticks:
-            self.quote_service.market_closed[dp.InstrumentID] = False
+            self.market_closed[inst] = False
             return False
-        if not market_closed and (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
+        if not self.market_closed[inst] and (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
             # logger.debug('No enough data')
             return False
         logger.info(u'保存合约{0}的分钟数据...'.format(inst))
@@ -103,10 +102,9 @@ class QuoteService(threading.Thread):
         df2['volume'] = df.resample(rule, label='right', how={'volume': 'sum'})
         df3 = df2.dropna(axis=0)
         logger.debug(df3)
-        if market_closed:
-            self.market_closed[inst] = False
-        else:
+        if not self.market_closed[inst]:
             df3 = df3[:-1]
+        self.market_closed[inst] = False
         if df3.empty:
             return False
         df3['securityID'] = inst
