@@ -4,13 +4,14 @@ import threading
 from time import sleep, time
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 
 import redisco
 
 from .quoteservice import current_price
 from .models.instrument import Instrument
 from .models.order import Order
-from .utils import logerror
+from .utils import logerror, exchange_time
 
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
@@ -231,4 +232,22 @@ class CheckUntradedOrderThread(threading.Thread):
 
     def run(self):
         while not self.trader.evt_stop.wait(5):
+            self.check()
+
+
+class CheckLimitOrderThread(threading.Thread):
+    def __init__(self, trader, timeout):
+        super(CheckLimitOrderThread, self).__init__(name='CkLimOrd-'+trader.name)
+        self.trader = trader
+        self.timeout = timeout
+
+    @logerror
+    def check(self):
+        for order in self.trader.untraded_orders():
+            delta = exchange_time(order.instrument.exchangeid) - order.order_time
+            if delta.seconds >= self.timeout:
+                self.cancel_order(order)
+
+    def run(self):
+        while not self.trader.evt_stop.wait(1):
             self.check()
