@@ -246,7 +246,7 @@ class CheckLimitOrderThread(threading.Thread):
         for order in self.trader.untraded_orders():
             delta = exchange_time(order.instrument.exchangeid) - order.order_time
             if delta.seconds >= self.timeout:
-                self.cancel_order(order)
+                self.trader.cancel_order(order)
 
     def run(self):
         while not self.trader.evt_stop.wait(1):

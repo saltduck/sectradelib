@@ -236,3 +236,6 @@ class BaseTrader(object):
 
     def cancel_orders(self, orders):
         pass
+
+    def cancel_order(self, order):
+        return self.cancel_orders([order])
