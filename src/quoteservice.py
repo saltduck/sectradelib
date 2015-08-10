@@ -12,6 +12,8 @@ from decimal import Decimal
 import pandas as pd
 import redisco
 
+from utils import current_price # for backward compatible
+
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 
@@ -120,17 +122,3 @@ class QuoteService(threading.Thread):
             self.tickdata[inst].sort(key=attrgetter('entry_time'))
         logger.debug('Saved @ {0}'.format(self.last_save_time[inst]))
         return True
-
-
-def current_price(instrumentid, direction=None):
-    if direction is None:
-        price = rdb.hget('current_price', instrumentid)
-    elif direction:
-        price = rdb.hget('current_b_price', instrumentid)
-    else:
-        price = rdb.hget('current_s_price', instrumentid)
-    try:
-        return float(price)
-    except TypeError:
-        logger.error(u'current_price({0}) got {1}'.format(instrumentid, price))
-        return None

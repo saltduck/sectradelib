@@ -3,9 +3,11 @@ import logging
 import os
 import threading
 import time
+import datetime
 
 from decorator import decorator
 import redisco
+from redisco.containers import Hash
 
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
@@ -121,3 +123,27 @@ def logerror(fn, *args, **kwargs):
     except Exception, e:
         logger.exception(unicode(e))
         return
+
+
+def current_price(instrumentid, direction=None):
+    if direction is None:
+        price = rdb.hget('current_price', instrumentid)
+    elif direction:
+        price = rdb.hget('current_b_price', instrumentid)
+    else:
+        price = rdb.hget('current_s_price', instrumentid)
+    try:
+        return float(price)
+    except TypeError:
+        logger.error(u'current_price({0}) got {1}'.format(instrumentid, price))
+        return None
+
+
+def exchange_time(exchangeid, localtime=None):
+    """ 计算交易所时间 """
+    if not localtime:
+        localtime = datetime.datetime.now()
+    timedelta = Hash('exchangetimedelta')[exchangeid]
+    if timedelta:
+        localtime += datetime.timedelta(seconds=float(timedelta))
+    return localtime
