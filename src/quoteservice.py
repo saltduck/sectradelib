@@ -72,7 +72,7 @@ class QuoteService(threading.Thread):
         logger.info('Quote Service is starting...')
         threading.Thread(target=self.wait_for_subscribe).start()
         while self.is_running:
-            sleep(1)
+            sleep(0.2)
             saved = False
             for instid in self.instruments:
                 try:
