@@ -46,27 +46,13 @@ class BaseStrategy(object):
         inst = self.check(instid)
         if inst:
             self._do_strategy(inst, result)
-
+        
     @logerror
-    def _close_then_open(self, inst, direction, price, volume=None):
-        to_be_closed = []
-        for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
-            if order.can_close:
-                logger.debug(u'先行平仓{0}'.format(order.sys_id))
-                neworder = self.trader.close_order(order, strategy_code=str(self.code))
-                if neworder:
-                    to_be_closed.append(neworder)
-        if not self.trader.wait_for_closed(to_be_closed):
-            logger.warning(u'平仓失败，放弃执行策略!')
-            return
-        volume = volume or self.get_max_volume(inst, direction)
-        volume = min(volume, inst.max_order_volume)
-        if volume < inst.min_order_volume:
-            logger.warning(u'资金不足，无法下单!')
-            return
+    def open_order(self, inst, price, volume, direction):
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=str(self.code))
         self.orders[inst.id].append(order.local_id)
-        
+        return order
+
     def close(self, inst, price):
         logger.info(u'策略{0}: 平仓{1}'.format(self.code, inst.name))
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
@@ -76,20 +62,16 @@ class BaseStrategy(object):
     def buy(self, inst, price, volume=None):
         logger.info(u'策略{0}: 买进{1}'.format(self.code, inst.name))
         if inst.is_trading:
-            threading.Thread(target=self._close_then_open, args=(inst, True, price, volume), name='BUY-'+self.trader.name).start()
+            return self.open_order(inst, price, volume, True)
 
     def sell(self, inst, price, volume=None):
         logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
-            threading.Thread(target=self._close_then_open, args=(inst, False, price, volume), name='SELL-'+self.trader.name).start()
+            return self.open_order(inst, price, volume, False)
 
     @abstractmethod
     def _do_strategy(self, inst, result=None):
         """ 执行策略 """
-
-    @abstractmethod
-    def get_max_volume(self, inst, direction):
-        """ 计算最大可下单手数 """
 
 
 class CheckAvailableThread(threading.Thread):
