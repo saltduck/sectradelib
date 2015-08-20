@@ -234,6 +234,26 @@ class BaseTrader(object):
                         orders.append(neworder)
             return orders
 
+    def wait_for_closed(self, orders):
+        """ 等待指定平仓单全部平仓完毕，超过30秒则撤单。
+        返回是否全部成功平仓。"""
+        if not orders:
+            return True
+        logger.debug(u'等待平仓单{0}执行成功...'.format(orders))
+        orders = list(set(orders))
+        for i in range(30):
+            if not orders:
+                break
+            time.sleep(1)
+            for order in orders:
+                o = Order.objects.get_by_id(order.id)
+                if o is None or o.is_closed() or o.orig_order.is_closed():
+                    orders.remove(order)
+        if orders:
+            self.cancel_orders(orders)
+        logger.debug(u'未成功平仓订单：{0}'.format(orders))
+        return not bool(orders)
+
     def cancel_orders(self, orders):
         pass
 

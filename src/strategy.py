@@ -16,26 +16,6 @@ from .utils import logerror, exchange_time
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 
-def wait_for_closed(orders, trader):
-    """ 等待指定平仓单全部平仓完毕，超过30秒则撤单。
-    返回是否全部成功平仓。"""
-    if not orders:
-        return True
-    logger.debug(u'等待平仓单{0}执行成功...'.format(orders))
-    orders = list(set(orders))
-    for i in range(30):
-        if not orders:
-            break
-        sleep(1)
-        for order in orders:
-            o = Order.objects.get_by_id(order.id)
-            if o is None or o.is_closed() or o.orig_order.is_closed():
-                orders.remove(order)
-    if orders:
-        trader.cancel_orders(orders)
-    logger.debug(u'未成功平仓订单：{0}'.format(orders))
-    return not bool(orders)
-
 
 class BaseStrategy(object):
     __metaclass__ = ABCMeta
@@ -76,7 +56,7 @@ class BaseStrategy(object):
                 neworder = self.trader.close_order(order, strategy_code=str(self.code))
                 if neworder:
                     to_be_closed.append(neworder)
-        if not wait_for_closed(to_be_closed, self.trader):
+        if not self.trader.wait_for_closed(to_be_closed):
             logger.warning(u'平仓失败，放弃执行策略!')
             return
         volume = volume or self.get_max_volume(inst, direction)
@@ -126,7 +106,7 @@ class CheckAvailableThread(threading.Thread):
             logger.warning(u'资金不足，平掉全部浮仓!')
             self.trader.close_lock = True
             orders = self.trader.close_all()
-            if not wait_for_closed(orders, self.trader):
+            if not self.trader.wait_for_closed(orders):
                 logger.info(u'平仓失败！')
             else:
                 logger.info(u'全部平仓成功!')
@@ -187,7 +167,7 @@ class CheckStopThread(threading.Thread):
                 neworder = self.close_order(order)
                 if neworder:
                     to_be_closed.append(neworder)
-        if not wait_for_closed(to_be_closed, self.trader):
+        if not self.trader.wait_for_closed(to_be_closed):
             logger.warning(u'止损(赢)平仓失败，请检查原因!')
 
     def run(self):
