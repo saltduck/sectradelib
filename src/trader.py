@@ -185,7 +185,7 @@ class BaseTrader(object):
                     offset = self.offsets[order.instrument.symbol]
                 except KeyError:
                     offset = self.offsets[order.instrument.product.prodid]
-                if hasattr(order, 'stop_profit_offset'):
+                if order.stop_profit_offset:
                     offset = list(offset)
                     offset[1] = order.stop_profit_offset
                     logger.debug('offset={0}'.format(offset))
