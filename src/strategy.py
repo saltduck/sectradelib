@@ -174,7 +174,7 @@ class CheckStopThread(threading.Thread):
                     except AttributeError:
                         offset = None
                 if not offset:
-                    logger.debug(u'收到未监控合约{0}的checkstop消息, monitor={1}'.format(instid, self.trader.monitors))
+                    #logger.debug(u'收到未监控合约{0}的checkstop消息, monitor={1}'.format(instid, self.trader.monitors))
                     continue
                 cur_price = current_price(instid, None)
                 self.set_stopprice(instrument, cur_price, *offset)
