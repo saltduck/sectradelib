@@ -101,7 +101,7 @@ class BaseTrader(object):
             if publish:
                 rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
                 rdb.publish('strategymonitor', json.dumps((symbol, instrument.id)))      # Notify strategy service
-            self.monitors[instrument.secid] = instrument
+            self.monitors[symbol] = instrument
             logger.debug(u'add_instrument: {0}'.format(instrument))
         logger.debug(u'Set monitors to {0}'.format(self.monitors))
 
