@@ -198,7 +198,8 @@ class CheckUntradedOrderThread(threading.Thread):
 
     def run(self):
         while not self.trader.evt_stop.wait(5):
-            self.check()
+            if self.trader.can_trade():
+                self.check()
 
 
 class CheckLimitOrderThread(threading.Thread):
@@ -218,4 +219,5 @@ class CheckLimitOrderThread(threading.Thread):
 
     def run(self):
         while not self.trader.evt_stop.wait(1):
-            self.check()
+            if self.trader.can_trade():
+                self.check()

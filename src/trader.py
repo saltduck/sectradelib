@@ -225,7 +225,7 @@ class BaseTrader(object):
             if local_id:
                 return self.account.create_order(local_id, False, strategy_code, order)
 
-    def close_all(self, inst=None):
+    def close_all(self, inst=None, price=0.0):
         """ 平掉指定合约的所有浮仓。返回平仓单列表。"""
         with self.lock:
             orders = []
@@ -233,7 +233,7 @@ class BaseTrader(object):
                 if order.can_close:
                     logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
                         order.sys_id, order.filled_volume, order.closed_volume))
-                    neworder = self.close_order(order)
+                    neworder = self.close_order(order, price)
                     if neworder:
                         orders.append(neworder)
             return orders
