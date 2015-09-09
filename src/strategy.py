@@ -101,9 +101,10 @@ class CheckAvailableThread(threading.Thread):
 
 
 class CheckStopThread(threading.Thread):
-    def __init__(self, trader):
+    def __init__(self, trader, limit_price_close=False):
         super(CheckStopThread, self).__init__(name='CKSTOP-'+trader.name)
         self.trader = trader
+        self.limit_price_close = limit_price_close
 
     @logerror
     def set_stopprice(self, instrument, price, offset_loss, offset_profit=0.0):
@@ -112,8 +113,8 @@ class CheckStopThread(threading.Thread):
             with self.trader.lock:
                 order.set_stopprice(price, offset_loss, offset_profit)
 
-    def close_order(self, order):
-        return self.trader.close_order(order, strategy_code=order.strategy_code)
+    def close_order(self, order, price=0.0):
+        return self.trader.close_order(order, price, strategy_code=order.strategy_code)
 
     @logerror
     def check(self, instrument, price):
@@ -146,7 +147,10 @@ class CheckStopThread(threading.Thread):
                         order.sys_id,
                     )
                 )
-                neworder = self.close_order(order)
+                if self.limit_price_close:
+                    neworder = self.close_order(order, price)
+                else:
+                    neworder = self.close_order(order)
                 if neworder:
                     to_be_closed.append(neworder)
         if not self.trader.wait_for_closed(to_be_closed):
@@ -160,7 +164,7 @@ class CheckStopThread(threading.Thread):
             item = ps.get_message()
             if item and item['type'] =='message':
                 if not self.trader.can_trade():
-                    logger.debug(u'交易程序未就绪')
+                    # logger.debug(u'交易程序未就绪')
                     continue
                 instid = item['data']
                 instrument = Instrument.objects.filter(secid=instid).first()
