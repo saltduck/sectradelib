@@ -59,10 +59,11 @@ class QuoteService(threading.Thread):
                 if item['type'] == 'message':
                     inst = Instrument.objects.filter(secid=item['data']).first()
                     logger.debug(u'Subscribe market data for:{0}'.format(inst))
-                    product = inst.product
-                    if product:
-                        self.unsubscribe(product.instruments)
-                    self.subscribe([inst])
+                    if inst:
+                        product = inst.product
+                        if product:
+                            self.unsubscribe(product.instruments)
+                        self.subscribe([inst])
             sleep(1)
 
     def stop(self):
