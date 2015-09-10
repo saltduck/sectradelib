@@ -1,5 +1,6 @@
 # coding:utf8
 import logging
+import json
 from itertools import groupby
 from operator import attrgetter
 
@@ -47,15 +48,22 @@ class Account(models.Model):
         return Order.objects.filter(account_id=self.id)
 
     def opened_orders(self, instrument=None, strategy_code=''):
-        queryset = self.orders
-        if instrument:
-            queryset = queryset.filter(instrument_id=instrument.id)
-        if strategy_code:
-            queryset = queryset.filter(strategy_code=strategy_code)
-        orders = list(queryset.filter(status=Order.OS_FILLED))
-        queryset = queryset.filter(status=Order.OS_CANCELED)
-        orders.extend([o for o in queryset if o.opened_volume != 0.0])
-        return orders
+        key = 'opened_orders:{0}:{1}:{2}'.format(self.id, instrument, strategy_code)
+        cached = self.db.get(key)
+        if cached:
+            return [Order.objects.get_by_id(oid) for oid in json.loads(cached)]
+        else:
+            queryset = self.orders
+            if instrument:
+                queryset = queryset.filter(instrument_id=instrument.id)
+            if strategy_code:
+                queryset = queryset.filter(strategy_code=strategy_code)
+            orders = list(queryset.filter(status=Order.OS_FILLED))
+            queryset = queryset.filter(status=Order.OS_CANCELED)
+            orders.extend([o for o in queryset if o.opened_volume != 0.0])
+            cached = json.dumps([o.id for o in orders])
+            self.db.set(key, cached, ex=1)
+            return orders
 
     def untraded_orders(self, instrument=None, strategy_code=''):
         queryset = self.orders
