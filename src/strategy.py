@@ -211,6 +211,9 @@ class CheckLimitOrderThread(threading.Thread):
     @logerror
     def check(self):
         for order in self.trader.untraded_orders():
+            if not order.price:
+                # 市价单不用撤
+                continue
             cur_exchange_time = exchange_time(order.instrument.exchangeid)
             delta =  cur_exchange_time - order.order_time
             if delta.total_seconds() >= self.timeout:
