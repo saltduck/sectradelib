@@ -26,26 +26,24 @@ class BaseStrategy(object):
         self.app = app
         self.orders = defaultdict(list)
 
-    def check(self, instid):
+    def check(self, symbol):
         if not self.trader.can_trade():
             logger.debug('Can not trade!')
             return False
         if self.trader.close_lock:
             logger.debug('In close lock!')
             return False
-        inst = Instrument.objects.filter(secid=instid).first()
-        if not inst:
-            inst = Instrument.objects.get_by_id(self.trader.monitors[instid].id)
+        inst = self.trader.monitors[symbol]
         if not inst.is_trading:
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
             return False
         return inst
 
     @logerror
-    def run(self, instid, result=None):
-        inst = self.check(instid)
+    def run(self, symbol, result=None):
+        inst = self.check(symbol)
         if inst:
-            self._do_strategy(inst, result)
+            self._do_strategy(symbol, result)
         
     @logerror
     def open_order(self, inst, price, volume, direction):
@@ -70,7 +68,7 @@ class BaseStrategy(object):
             return self.open_order(inst, price, volume, False)
 
     @abstractmethod
-    def _do_strategy(self, inst, result=None):
+    def _do_strategy(self, symbol, result=None):
         """ 执行策略 """
 
 
