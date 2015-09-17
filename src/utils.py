@@ -147,3 +147,19 @@ def exchange_time(exchangeid, localtime=None):
     if timedelta:
         localtime += datetime.timedelta(seconds=float(timedelta))
     return localtime
+
+def get_last_line(fn):
+    if not os.path.exists(fn):
+        return None
+    with open(fn, 'r') as f:
+        i = -1
+        while True:
+            i = i - 1
+            try:
+                f.seek(i, 2)
+            except IOError:
+                f.seek(0)
+                break
+            if f.read(1) == '\n':
+                break
+        return f.readline().strip()
