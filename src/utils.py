@@ -138,6 +138,13 @@ def current_price(instrumentid, direction=None):
         logger.error(u'current_price({0}) got {1}'.format(instrumentid, price))
         return None
 
+def last_close_price(instid):
+    try:
+        price = rdb.hget('last_close_price', instid)
+        return price
+    except TypeError:
+        logger.error(u'last_close_price({0}) got {1}'.format(instid, price))
+        return None
 
 def exchange_time(exchangeid, localtime=None):
     """ 计算交易所时间 """

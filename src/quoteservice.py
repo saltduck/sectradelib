@@ -117,6 +117,7 @@ class QuoteService(threading.Thread):
             'high': 'high_price',
             'low': 'low_price'})
         self.do_save(df3)
+        rdb.hset('last_close_price', inst, df3.irow(len(df3) - 1).close_price)
         self.last_save_time[inst] = df3.ix[-1].name
         with self.tick_lock:
             self.tickdata[inst] = [tick for tick in self.tickdata[inst] if tick.entry_time >= self.last_save_time[inst]]
