@@ -214,6 +214,12 @@ class CheckLimitOrderThread(threading.Thread):
             if delta.total_seconds() >= self.timeout:
                 logger.debug(u'订单时间: {0}, 交易所当前时间: {1}'.format(order.order_time, cur_exchange_time))
                 self.trader.cancel_order(order)
+                # 限价平仓单撤销后重下市价平仓单
+                if not order.is_open:
+                    sleep(0.2)
+                    order = Order.objects.get_by_id(order.id)
+                    if order.status == Order.OS_CANCELED:
+                        self.trader.close_order(order.orig_order, strategy_code=order.strategy_code)
 
     def run(self):
         while not self.trader.evt_stop.wait(1):
