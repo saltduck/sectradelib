@@ -10,7 +10,7 @@ import redisco
 from .models.instrument import Instrument
 from .models.account import Account, convert_currency
 from .models.order import Order
-from .utils import current_price
+from .utils import current_price, last_close_price
 
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
@@ -235,7 +235,7 @@ class BaseTrader(object):
                     logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
                         order.sys_id, order.filled_volume, order.closed_volume))
                     if limit_price_close:
-                        neworder = self.close_order(order, current_price(order.instrument.secid))
+                        neworder = self.close_order(order, last_close_price(order.instrument.secid))
                     else:
                         neworder = self.close_order(order)
                     if neworder:
