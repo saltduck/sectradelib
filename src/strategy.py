@@ -145,10 +145,7 @@ class CheckStopThread(threading.Thread):
                         order.sys_id,
                     )
                 )
-                if self.limit_price_close:
-                    neworder = self.close_order(order, price)
-                else:
-                    neworder = self.close_order(order)
+                neworder = self.close_order(order)
                 if neworder:
                     to_be_closed.append(neworder)
         if not self.trader.wait_for_closed(to_be_closed):
