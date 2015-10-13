@@ -18,8 +18,6 @@ rdb = redisco.get_client()
 
 
 class BaseStrategy(object):
-    __metaclass__ = ABCMeta
-
     def __init__(self, code, trader, app):
         self.code = str(code)
         self.trader = trader
@@ -38,12 +36,6 @@ class BaseStrategy(object):
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
             return False
         return inst
-
-    @logerror
-    def run(self, symbol, result=None):
-        inst = self.check(symbol)
-        if inst:
-            self._do_strategy(symbol, result)
         
     @logerror
     def open_order(self, inst, price, volume, direction):
@@ -66,10 +58,6 @@ class BaseStrategy(object):
         logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
             return self.open_order(inst, price, volume, False)
-
-    @abstractmethod
-    def _do_strategy(self, symbol, result=None):
-        """ 执行策略 """
 
 
 class CheckAvailableThread(threading.Thread):
