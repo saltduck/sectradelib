@@ -198,10 +198,11 @@ class CheckUntradedOrderThread(threading.Thread):
 
 
 class CheckLimitOrderThread(threading.Thread):
-    def __init__(self, trader, timeout):
+    def __init__(self, trader, timeout, cancel_wait_time=0.2):
         super(CheckLimitOrderThread, self).__init__(name='CkLimOrd-'+trader.name)
         self.trader = trader
         self.timeout = timeout
+        self.cancel_wait_time = cancel_wait_time
 
     @logerror
     def check(self):
@@ -216,7 +217,7 @@ class CheckLimitOrderThread(threading.Thread):
                 self.trader.cancel_order(order)
                 # 限价平仓单撤销后重下市价平仓单
                 if not order.is_open:
-                    sleep(0.2)
+                    sleep(self.cancel_wait_time)
                     order = Order.objects.get_by_id(order.id)
                     if order.status == Order.OS_CANCELED:
                         self.trader.close_order(order.orig_order, strategy_code=order.strategy_code)
