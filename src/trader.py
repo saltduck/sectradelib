@@ -171,7 +171,7 @@ class BaseTrader(object):
                 order.save()
             logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
 
-    def on_trade(self, execid, secid, orderid, price, volume, exectime):
+    def on_trade(self, execid, secid, orderid, price, volume, exectime, setstop=True):
         with self.lock:
             order = Order.objects.filter(sys_id=orderid).first()
             if order is None:
@@ -181,7 +181,7 @@ class BaseTrader(object):
                 logger.debug(u'订单(订单号：{0})无法交易，等待重试'.format(orderid))
                 return False
             self.account.on_trade(order, execid, price, volume, exectime)
-            if order.is_open:
+            if order.is_open and setstop:
                 # 补仓或开新仓：按最新价设置止损价
                 try:
                     offset = self.offsets[order.instrument.symbol]
