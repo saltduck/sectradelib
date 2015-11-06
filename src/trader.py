@@ -169,7 +169,7 @@ class BaseTrader(object):
             if order.status != Order.OS_FILLED:
                 order.status = Order.OS_CANCELED
                 order.save()
-            logger.info(u'订单(本地订单号：{0})已撤销'.format(local_id))
+            logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime):
         with self.lock:
