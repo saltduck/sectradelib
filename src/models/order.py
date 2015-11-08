@@ -92,7 +92,7 @@ class Order(models.Model):
 
     @property
     def can_close(self):
-        return self.status in (Order.OS_FILLED, Order.OS_CANCELED)
+        return self.status == Order.OS_FILLED
 
     @property
     def can_cancel(self):

@@ -219,12 +219,16 @@ class BaseTrader(object):
         with self.lock:
             if order.can_cancel:
                 self.cancel_orders([order])
+            if not order.can_close:
+                return
             volume = volume or abs(order.opened_volume)
             if not price:
                 local_id = self.close_market_order(order, volume)
             else:
                 local_id = self.close_limit_order(order, price, volume)
             if local_id:
+                order.status = Order.OS_CLOSING
+                order.save()
                 return self.account.create_order(local_id, False, strategy_code, order)
 
     def close_all(self, inst=None, limit_price_close=False):
