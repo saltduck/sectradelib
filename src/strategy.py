@@ -18,8 +18,6 @@ rdb = redisco.get_client()
 
 
 class BaseStrategy(object):
-    __metaclass__ = ABCMeta
-
     def __init__(self, code, trader, app):
         self.code = str(code)
         self.trader = trader
@@ -38,12 +36,6 @@ class BaseStrategy(object):
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
             return False
         return inst
-
-    @logerror
-    def run(self, symbol, result=None):
-        inst = self.check(symbol)
-        if inst:
-            self._do_strategy(symbol, result)
         
     @logerror
     def open_order(self, inst, price, volume, direction):
@@ -67,10 +59,6 @@ class BaseStrategy(object):
         logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
             return self.open_order(inst, price, volume, False)
-
-    @abstractmethod
-    def _do_strategy(self, symbol, result=None):
-        """ 执行策略 """
 
 
 class CheckAvailableThread(threading.Thread):
@@ -199,10 +187,11 @@ class CheckUntradedOrderThread(threading.Thread):
 
 
 class CheckLimitOrderThread(threading.Thread):
-    def __init__(self, trader, timeout):
+    def __init__(self, trader, timeout, cancel_wait_time=0.2):
         super(CheckLimitOrderThread, self).__init__(name='CkLimOrd-'+trader.name)
         self.trader = trader
         self.timeout = timeout
+        self.cancel_wait_time = cancel_wait_time
 
     @logerror
     def check(self):
@@ -217,7 +206,7 @@ class CheckLimitOrderThread(threading.Thread):
                 self.trader.cancel_order(order)
                 # 限价平仓单撤销后重下市价平仓单
                 if not order.is_open:
-                    sleep(0.2)
+                    sleep(self.cancel_wait_time)
                     order = Order.objects.get_by_id(order.id)
                     if order.status == Order.OS_CANCELED:
                         self.trader.close_order(order.orig_order, strategy_code=order.strategy_code)

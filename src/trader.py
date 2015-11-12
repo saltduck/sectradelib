@@ -166,11 +166,12 @@ class BaseTrader(object):
             if not order:
                 logger.error(u'收到未知订单的撤单回报，本地订单号：{0}'.format(local_id))
                 return
-            order.status = Order.OS_CANCELED
-            order.save()
-            logger.info(u'订单(本地订单号：{0})已撤销'.format(local_id))
+            if order.status != Order.OS_FILLED:
+                order.status = Order.OS_CANCELED
+                order.save()
+            logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
 
-    def on_trade(self, execid, secid, orderid, price, volume, exectime):
+    def on_trade(self, execid, secid, orderid, price, volume, exectime, setstop=True):
         with self.lock:
             order = Order.objects.filter(sys_id=orderid).first()
             if order is None:
@@ -180,7 +181,7 @@ class BaseTrader(object):
                 logger.debug(u'订单(订单号：{0})无法交易，等待重试'.format(orderid))
                 return False
             self.account.on_trade(order, execid, price, volume, exectime)
-            if order.is_open:
+            if order.is_open and setstop:
                 # 补仓或开新仓：按最新价设置止损价
                 try:
                     offset = self.offsets[order.instrument.symbol]
@@ -218,12 +219,16 @@ class BaseTrader(object):
         with self.lock:
             if order.can_cancel:
                 self.cancel_orders([order])
+            if not order.can_close:
+                return
             volume = volume or abs(order.opened_volume)
             if not price:
                 local_id = self.close_market_order(order, volume)
             else:
                 local_id = self.close_limit_order(order, price, volume)
             if local_id:
+                order.status = Order.OS_CLOSING
+                order.save()
                 return self.account.create_order(local_id, False, strategy_code, order)
 
     def close_all(self, inst=None, limit_price_close=False):

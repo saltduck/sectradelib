@@ -59,8 +59,7 @@ class Account(models.Model):
             if strategy_code:
                 queryset = queryset.filter(strategy_code=strategy_code)
             orders = list(queryset.filter(status=Order.OS_FILLED))
-            queryset = queryset.filter(status=Order.OS_CANCELED)
-            orders.extend([o for o in queryset if o.opened_volume != 0.0])
+            orders.extend(list(queryset.filter(status=Order.OS_CLOSING)))
             cached = json.dumps([o.id for o in orders])
             self.db.set(key, cached, ex=1)
             return orders
