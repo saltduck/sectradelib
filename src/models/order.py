@@ -3,7 +3,7 @@ import logging
 from redisco import models
 
 from .instrument import Instrument
-from ..quoteservice import current_price
+from ..utils import current_price
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +235,7 @@ class Order(models.Model):
             assert self.orig_order.is_valid(), self.orig_order.errors
             self.orig_order.save()
             logger.debug(u'订单{0}已全部平仓'.format(self.orig_order.sys_id))
-        if abs(self.closed_volume) >= abs(self.filled_volume):
+        if abs(self.closed_volume) >= abs(self.orig_order.filled_volume):
             self.status = Order.OS_CLOSED
             assert self.is_valid(), self.errors
             self.save()

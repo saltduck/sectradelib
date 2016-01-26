@@ -8,7 +8,7 @@ from redisco import models
 
 from .instrument import Instrument
 from .order import Order
-from ..quoteservice import current_price
+from ..utils import current_price
 
 logger = logging.getLogger(__name__)
 
