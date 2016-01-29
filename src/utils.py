@@ -170,3 +170,11 @@ def get_last_line(fn):
             if f.read(1) == '\n':
                 break
         return f.readline().strip()
+
+
+class FloatHash(Hash):
+    def __getitem__(self, att):
+        try:
+            return float(super(FloatHash, self).__getitem__(att))
+        except ValueError:
+            return 0.0
