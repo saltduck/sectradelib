@@ -166,7 +166,7 @@ class BaseTrader(object):
             if not order:
                 logger.error(u'收到未知订单的撤单回报，本地订单号：{0}'.format(local_id))
                 return
-            if order.status != Order.OS_FILLED:
+            if not order.is_open or order.status != Order.OS_FILLED:
                 order.status = Order.OS_CANCELED
                 order.save()
             logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))

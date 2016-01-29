@@ -40,7 +40,8 @@ class BaseStrategy(object):
     @logerror
     def open_order(self, inst, price, volume, direction):
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=str(self.code))
-        self.orders[inst.id].append(order.local_id)
+        if order:
+            self.orders[inst.id].append(order.local_id)
         return order
 
     def close(self, inst, price):
