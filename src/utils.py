@@ -176,5 +176,5 @@ class FloatHash(Hash):
     def __getitem__(self, att):
         try:
             return float(super(FloatHash, self).__getitem__(att))
-        except ValueError:
+        except (ValueError, TypeError):
             return 0.0
