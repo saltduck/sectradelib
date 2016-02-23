@@ -36,6 +36,20 @@ def test_calcs():
     eq_(inst.calc_commission(100.0, 2, True), 0.5)
     eq_(inst.calc_commission(100.0, 2, False), 0.5)
 
+    inst.indirect_quotation = True
+    inst.ndigits = 6
+    eq_(inst.amount(100.0, 2), 2.0)
+    eq_(inst.calc_margin(100.0, 2, True), 0.1)
+    eq_(inst.calc_margin(100.0, 2, False), 0.2)
+    inst.open_commission_rate = 0.00005
+    inst.close_commission_rate = 0.0
+    eq_(inst.calc_commission(100.0, 2, True), 0.0001)
+    eq_(inst.calc_commission(100.0, 2, False), 0.0)
+    inst.open_commission_rate = None
+    inst.close_commission_rate = None
+    eq_(inst.calc_commission(100.0, 2, True), 0.00005)
+    eq_(inst.calc_commission(100.0, 2, False), 0.00005)
+
 def test_deadline():
     inst = Instrument(secid='XX1505', name='XX 2015/05', symbol='XX-1505', quoted_currency='USD', expire_date=datetime.date(2015, 12, 31))
     inst.exchangeid=''
