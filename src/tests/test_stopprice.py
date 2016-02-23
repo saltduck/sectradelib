@@ -3,9 +3,9 @@ import itertools
 
 from nose.tools import eq_, with_setup
 
-from sectradelib.models import Instrument, Account, Order
-from sectradelib.trader import BaseTrader
-from sectradelib.strategy import CheckStopThread
+from ..models import Instrument, Account, Order
+from ..trader import BaseTrader
+from ..strategy import CheckStopThread
 
 def setup_func():
     count = itertools.count()
@@ -17,6 +17,7 @@ def setup_func():
         return 'LOCAL{0}'.format(count.next())
     BaseTrader.open_market_order = open_market_order
     BaseTrader.close_market_order = close_market_order
+    BaseTrader.wait_for_closed = lambda orders: True
     Instrument.objects.create(secid='XX1505', name='XX1505', symbol='XX1505', quoted_currency='CNY', multiplier=1.0)
 
 def teardown_func():
@@ -47,6 +48,7 @@ def test_only_stop_loss():
     trader.on_trade('EXEC2', 'XX1505', 'ORDER2', 4980, 1, datetime.now())
     order2 = Order.objects.get_by_id(order2.id)
     eq_(order2.stoploss, 4880)
+    thread.trader.account.db.delete('opened_orders:{0}:{1}:'.format(thread.trader.account.id, inst))
     thread.set_stopprice(inst, 4880, 100)
     order1 = Order.objects.get_by_id(order1.id)
     eq_(order1.stoploss, 5000)
@@ -59,7 +61,7 @@ def test_only_stop_loss():
 
     thread.check(inst, 4970)
     order1 = Order.objects.get_by_id(order1.id)
-    eq_(order1.status, Order.OS_CLOSED)
+    eq_(order1.status, Order.OS_CLOSING)
     order2 = Order.objects.get_by_id(order2.id)
     eq_(order2.status, Order.OS_FILLED)
     
@@ -91,6 +93,7 @@ def test_stop_loss_and_profit():
     order2 = Order.objects.get_by_id(order2.id)
     eq_(order2.stoploss, 4880)
     eq_(order2.stopprofit, 5280)
+    thread.trader.account.db.delete('opened_orders:{0}:{1}:'.format(thread.trader.account.id, inst))
     thread.set_stopprice(inst, 4880, 100, 300)
     order1 = Order.objects.get_by_id(order1.id)
     eq_(order1.stoploss, 5000)
@@ -116,4 +119,4 @@ def test_stop_loss_and_profit():
     order1 = Order.objects.get_by_id(order1.id)
     eq_(order1.status, Order.OS_FILLED)
     order2 = Order.objects.get_by_id(order2.id)
-    eq_(order2.status, Order.OS_CLOSED)
+    eq_(order2.status, Order.OS_CLOSING)

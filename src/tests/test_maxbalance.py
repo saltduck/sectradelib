@@ -1,7 +1,7 @@
 
 from nose.tools import eq_, with_setup
 
-from sectradelib.trader import BaseTrader
+from ..trader import BaseTrader
 
 def test_max_balance():
     trader = BaseTrader('test', 'test', 'CNY', '')
