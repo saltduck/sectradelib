@@ -1,10 +1,10 @@
 
 from nose.tools import eq_, with_setup
 
-from ..trader import BaseTrader
+from .utils import TestTrader
 
 def test_max_balance():
-    trader = BaseTrader('test', 'test', 'CNY', '')
+    trader = TestTrader('test', 'test', 'CNY', '')
     eq_(trader.max_balance, 0.0)
     trader.account.set_balance(100.0)
     trader.on_account_changed()

@@ -1,23 +1,12 @@
 from datetime import datetime
-import itertools
 
 from nose.tools import eq_, with_setup
 
 from ..models import Instrument, Account, Order
-from ..trader import BaseTrader
 from ..strategy import CheckStopThread
+from .utils import TestTrader
 
 def setup_func():
-    count = itertools.count()
-    def open_market_order(self, inst, volume, direction):
-        return 'LOCAL{0}'.format(count.next())
-    def close_market_order(self, order, volume):
-        order.status = Order.OS_CLOSED
-        order.save()
-        return 'LOCAL{0}'.format(count.next())
-    BaseTrader.open_market_order = open_market_order
-    BaseTrader.close_market_order = close_market_order
-    BaseTrader.wait_for_closed = lambda orders: True
     Instrument.objects.create(secid='XX1505', name='XX1505', symbol='XX1505', quoted_currency='CNY', multiplier=1.0)
 
 def teardown_func():
@@ -29,7 +18,7 @@ def teardown_func():
 
 @with_setup(setup_func, teardown_func)
 def test_only_stop_loss():
-    trader = BaseTrader('test', 'test', 'CNY', 'XX1505:100')
+    trader = TestTrader('test', 'test', 'CNY', 'XX1505:100')
     trader.set_monitors()
     thread = CheckStopThread(trader)
     inst = Instrument.objects.filter(secid='XX1505').first()
@@ -71,7 +60,7 @@ def test_only_stop_loss():
 
 @with_setup(setup_func, teardown_func)
 def test_stop_loss_and_profit():
-    trader = BaseTrader('test', 'test', 'CNY', 'XX1505:100:300')
+    trader = TestTrader('test', 'test', 'CNY', 'XX1505:100:300')
     trader.set_monitors()
     thread = CheckStopThread(trader)
     inst = Instrument.objects.filter(secid='XX1505').first()
