@@ -8,6 +8,11 @@ logger = logging.getLogger(__name__)
 
 
 class Instrument(models.Model):
+    """
+    >>> i = Instrument(secid='XX1505', name='XX 2015/05', symbol='XX-1505', quoted_currency='USD', multiplier=10.0)
+    >>> print i
+    XX-1505
+    """
     secid = models.Attribute(required=True)
     name = models.Attribute(required=True)
     symbol = models.Attribute(required=True)
@@ -92,6 +97,18 @@ class Instrument(models.Model):
 
 
 class Product(models.Model):
+    """
+    >>> p = Product.objects.create(prodid='XX', exchangeid='XXXX')
+    >>> p
+    XX
+    >>> p.instruments
+    []
+    >>> i = Instrument.objects.create(secid='XX1505', name='XX1505', symbol='XX1505', product=p, quoted_currency='USD')
+    >>> p.instruments
+    [XX1505]
+    >>> i.delete()
+    >>> p.delete()
+    """
     prodid = models.Attribute()
     exchangeid = models.Attribute()
     is_trading = models.BooleanField()

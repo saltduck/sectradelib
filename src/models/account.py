@@ -61,7 +61,7 @@ class Account(models.Model):
             orders = list(queryset.filter(status=Order.OS_FILLED))
             orders.extend(list(queryset.filter(status=Order.OS_CLOSING)))
             cached = json.dumps([o.id for o in orders])
-            self.db.set(key, cached, ex=1)
+            self.db.setex(key, cached, 1)
             return orders
 
     def untraded_orders(self, instrument=None, strategy_code=''):

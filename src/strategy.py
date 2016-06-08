@@ -38,10 +38,51 @@ class BaseStrategy(object):
         return inst
         
     @logerror
-    def open_order(self, inst, price, volume, direction):
-        order = self.trader.open_order(inst, price, volume, direction, strategy_code=str(self.code))
+    def open_order(self, inst, price, volume, direction, delay=60, step=0.0, count=1, action=''):
+        @logerror
+        def work(order, delay, step, count, action):
+            ok =False
+            for i in range(count):
+                if self.trader.evt_stop.wait(delay):
+                    # system exit
+                    break
+                if not self.trader.is_simul:
+                    order = Order.objects.get_by_id(order.id)
+                if order.filled_volume == order.volume:
+                    # Completed
+                    ok = True
+                    break
+                if i == count-1:    # last loop
+                    break
+                if direction:
+                    price = order.price + step
+                else:
+                    price = order.price - step
+                volume = abs(order.volume) - abs(order.filled_volume)
+                if not self.trader.cancel_order(order):
+                    ok = True
+                    break
+                self.orders[inst.id].remove(order.local_id)
+                neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
+                self.on_canceL(order, neworder)
+                if not neworder:                    
+                    break
+                order = neworder
+                self.orders[inst.id].append(order.local_id)
+            if not ok:
+                if action == 'CANCEL':
+                    if self.trader.cancel_order(order):
+                        self.orders[inst.id].remove(order.local_id)
+                elif action == 'MARKET':
+                    order = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
+                    if order:
+                        self.orders[inst.id].append(order.local_id)
+            return order
+        order = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
         if order:
             self.orders[inst.id].append(order.local_id)
+            if not self.trader.is_simul and count > 0:
+                threading.Thread(target=work, args=(order, delay, step, count, action)).start()
         return order
 
     def close(self, inst, price):
@@ -59,6 +100,9 @@ class BaseStrategy(object):
         logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
             return self.open_order(inst, price, volume, False)
+
+    def on_cancel(self, order, neworder):
+        pass
 
 
 class CheckAvailableThread(threading.Thread):
