@@ -59,12 +59,15 @@ class BaseStrategy(object):
                 else:
                     price = order.price - step
                 volume = abs(order.volume) - abs(order.filled_volume)
-                if self.trader.cancel_order(order):
-                    self.orders[inst.id].remove(order.local_id)
-                order = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
-                if not order:
-                    # Sth. wrong
+                if not self.trader.cancel_order(order):
+                    ok = True
                     break
+                self.orders[inst.id].remove(order.local_id)
+                neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
+                self.on_canceL(order, neworder)
+                if not neworder:                    
+                    break
+                order = neworder
                 self.orders[inst.id].append(order.local_id)
             if not ok:
                 if action == 'CANCEL':
@@ -97,6 +100,9 @@ class BaseStrategy(object):
         logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
             return self.open_order(inst, price, volume, False)
+
+    def on_cancel(self, order, neworder):
+        pass
 
 
 class CheckAvailableThread(threading.Thread):
