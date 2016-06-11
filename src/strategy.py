@@ -64,7 +64,7 @@ class BaseStrategy(object):
                     break
                 self.orders[inst.id].remove(order.local_id)
                 neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
-                self.on_canceL(order, neworder)
+                self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
                 order = neworder
@@ -73,6 +73,7 @@ class BaseStrategy(object):
                 if action == 'CANCEL':
                     if self.trader.cancel_order(order):
                         self.orders[inst.id].remove(order.local_id)
+                        self.on_cancel(order)
                 elif action == 'MARKET':
                     order = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
                     if order:
