@@ -102,7 +102,7 @@ class BaseStrategy(object):
         if inst.is_trading:
             return self.open_order(inst, price, volume, False)
 
-    def on_cancel(self, order, neworder):
+    def on_cancel(self, order, neworder=None):
         pass
 
 
