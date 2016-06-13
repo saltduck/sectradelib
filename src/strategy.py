@@ -46,8 +46,7 @@ class BaseStrategy(object):
                 if self.trader.evt_stop.wait(delay):
                     # system exit
                     break
-                if not self.trader.is_simul:
-                    order = Order.objects.get_by_id(order.id)
+                order = Order.objects.get_by_id(order.id)
                 if order.filled_volume == order.volume:
                     # Completed
                     ok = True
