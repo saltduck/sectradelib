@@ -216,7 +216,7 @@ class BaseTrader(object):
             local_id = self.open_limit_order(inst, price, volume, direction)
         if local_id:
             with self.lock:
-                return self.account.create_order(local_id, True, strategy_code)
+                return self.account.create_order(local_id, inst, price, volume, True, strategy_code)
 
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
         """ 平仓。返回平仓订单 or None。"""
@@ -233,7 +233,7 @@ class BaseTrader(object):
             with self.lock:
                 order.status = Order.OS_CLOSING
                 order.save()
-                return self.account.create_order(local_id, False, strategy_code, order)
+                return self.account.create_order(local_id, order.instrument, price, volume, False, strategy_code, order)
 
     def close_all(self, inst=None, limit_price_close=False):
         """ 平掉指定合约的所有浮仓。返回平仓单列表。"""

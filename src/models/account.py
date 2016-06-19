@@ -144,11 +144,19 @@ class Account(models.Model):
     def set_available(self, available):
         self._available = available
 
-    def create_order(self, local_order_id, is_open=None, strategy_code='', orig_order=None):
+    def create_order(self, local_order_id, inst=None, price=None, volume=None, is_open=None, strategy_code='', orig_order=None):
         assert is_open is None or is_open == (orig_order is None), (is_open, orig_order)
         neworder = Order.objects.filter(local_id=local_order_id).first()
         if not neworder:
-            neworder = Order(local_id=local_order_id)
+            neworder = Order(local_id=local_order_id, instrument=inst)
+            try:
+                neworder.price = float(price)
+            except:
+                pass
+            try:
+                neworder.volume = float(volume)
+            except:
+                pass 
             logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
         neworder.update_attributes(account=self, is_open=is_open, strategy_code=strategy_code)
         if orig_order:
