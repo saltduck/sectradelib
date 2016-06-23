@@ -159,8 +159,7 @@ class BaseTrader(object):
             if order is None:
                 logger.error(u'找不到订单号为{0}的订单'.format(local_id))
                 return
-            order.status = Order.OS_REJECTED
-            order.save()
+            order.update_status(Order.OS_REJECTED)
 
     def on_cancel(self, local_id):
         with self.lock:
@@ -170,10 +169,9 @@ class BaseTrader(object):
                 return
             if order.is_open and order.status == Order.OS_FILLED:
                 # 开仓单部成部撤特殊处理
-                order.volume = order.filled_volume
+                order.update_float_value('volume', order.filled_volume)
             else:
-                order.status = Order.OS_CANCELED
-            order.save()
+                order.update_status(Order.OS_CANCELED)
             logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime, setstop=True):
@@ -235,8 +233,7 @@ class BaseTrader(object):
             local_id = self.close_limit_order(order, price, volume)
         if local_id:
             with self.lock:
-                order.status = Order.OS_CLOSING
-                order.save()
+                order.update_status(Order.OS_CLOSING)
                 return self.account.create_order(local_id, order.instrument, price, volume, False, strategy_code, order)
 
     def close_all(self, inst=None, limit_price_close=False):
