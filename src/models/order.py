@@ -154,6 +154,43 @@ class Order(models.Model):
             t.delete()
         super(Order, self).delete(*args, **kwargs)
 
+    def update_index_value(self, att, value):
+        assert att in ('status', 'is_open')
+        pipeline = self.db.pipeline()
+        # remove from old index
+        indkey = self._index_key_for_attr_val(att, getattr(self, att))
+        pipeline.srem(indkey, self.id)
+        # add to new index
+        self._add_to_index(att, val=value, pipeline=pipeline)
+        # set db value
+        pipline.hset(self.key(), att, value)
+        pipline.execute()
+        # set instance value
+        setattr(self, att, value)
+
+    def update_status(self, value):
+        value = int(value)
+        assert 0 <= value < 7
+        self.update_index_value('status', value)
+
+    def change_to_open_order(self):
+        self.update_index_value('is_open', True)
+
+    def update_float_value(self, att, value):
+        assert att in ('stoploss', 'stopprofit', 'stop_profit_offset')
+        value = float(value)
+        self.db.hset(self.key(), att, value)
+        setattr(self, att, value)
+
+    def update_stopprice(self, stoploss=None, stopprofit=None):
+        if stoploss is not None:
+            self.update_float_value('stoploss', stoploss)
+        if stopprofit is not None:
+            self.update_float_value('stopprofit', stopprofit)
+
+    def update_stop_profit_offset(self, value):
+        self.update_float_value('stop_profit_offset', value)
+
     def margin(self, cur_price=None):
         cur_price = cur_price or self.cur_price
         return self.instrument.calc_margin(cur_price, self.opened_volume)
@@ -188,9 +225,7 @@ class Order(models.Model):
             volume = -volume
         t = Trade(order=self)
         t.on_trade(price, volume, tradetime, execid, self.is_open)
-        self.status = Order.OS_FILLED
-        assert self.is_valid(), self.errors
-        self.save()
+        self.update_status(Order.OS_FILLED)
         logger.info(u'<策略{0}>成交回报: {1}{2}仓 合约={3} 价格={4} 数量={5}'.format(
                 self.strategy_code,
                 u'开' if self.is_open else u'平',
@@ -205,13 +240,12 @@ class Order(models.Model):
         # 静态止赢价
         if offset_profit and not self.stopprofit:
             if self.is_long:
-                self.stopprofit = price + offset_profit
+                stopprofit = price + offset_profit
             else:
-                self.stopprofit = price - offset_profit
-            assert self.is_valid(), self.errors
+                stopprofit = price - offset_profit
+            self.update_stopprice(stopprofit=stopprofit)
             logger.debug('Order {0} set stop profit price to {1}'.format(
                 self.sys_id, self.stopprofit))
-            self.save()
         # 浮动止损价
         if offset_loss:
             if self.is_long:
@@ -222,27 +256,19 @@ class Order(models.Model):
                 stoploss = price + offset_loss
                 if self.stoploss and stoploss >= self.stoploss:
                     return
-            self.stoploss = float(stoploss)
-            assert self.is_valid(), self.errors
+            self.update_stopprice(stoploss)
             logger.debug('Order {0} set stop loss price to {1}'.format(
                 self.sys_id, self.stoploss))
-            self.save()
 
     def on_close(self, trade):
         trade.on_close()
         if abs(self.orig_order.closed_volume) >= abs(self.orig_order.filled_volume):
-            self.orig_order.status = Order.OS_CLOSED
-            assert self.orig_order.is_valid(), self.orig_order.errors
-            self.orig_order.save()
+            self.orig_order.update_status(Order.OS_CLOSED)
             logger.debug(u'订单{0}已全部平仓'.format(self.orig_order.sys_id))
         if abs(self.closed_volume) >= abs(self.orig_order.filled_volume):
-            self.status = Order.OS_CLOSED
-            assert self.is_valid(), self.errors
-            self.save()
+            self.update_status(Order.OS_CLOSED)
             logger.debug(u'订单{0}已全部平仓'.format(self.sys_id))
         elif self.orig_order.is_closed() and self.opened_volume != 0:
             # 平仓单手数大于原订单开仓手数，原订单全部平仓后，将平仓单剩余手数改为开仓单
-            self.is_open = True
-            assert self.is_valid(), self.errors
-            self.save()
+            self.change_to_open_order()
             logger.debug(u'订单{0}转为开仓单'.format(self.sys_id))
