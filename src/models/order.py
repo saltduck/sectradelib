@@ -154,6 +154,19 @@ class Order(models.Model):
             t.delete()
         super(Order, self).delete(*args, **kwargs)
 
+    def update_status(self, value):
+        pipeline = self.db.pipeline()
+        # remove from old index
+        indkey = self._index_key_for_attr_val('status', self.value)
+        pipeline.srem(indkey, self.id)
+        # add to new index
+        self._add_to_index('status', val=value, pipeline=pipeline)
+        # set db value
+        pipline.hset(self.key(), 'status', value)
+        pipline.execute()
+        # set instance value
+        o.status = status
+
     def margin(self, cur_price=None):
         cur_price = cur_price or self.cur_price
         return self.instrument.calc_margin(cur_price, self.opened_volume)
