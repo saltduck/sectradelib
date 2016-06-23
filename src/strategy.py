@@ -66,6 +66,7 @@ class BaseStrategy(object):
                 self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
+                logger.info('Order {0} replaced by {1}'.format(order.sys_id, neworder.local_id))
                 order = neworder
                 self.orders[inst.id].append(order.local_id)
             if not ok:
