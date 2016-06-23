@@ -227,6 +227,7 @@ class BaseTrader(object):
         if order.can_cancel:
             self.cancel_orders([order])
         if not order.can_close:
+            logger.warning(u'订单{0}不允许平仓，状态为{1}'.format(order.local_id, order.status))
             return
         volume = volume or abs(order.opened_volume)
         if not price:
