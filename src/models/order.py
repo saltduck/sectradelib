@@ -240,7 +240,7 @@ class Order(models.Model):
             assert self.is_valid(), self.errors
             self.save()
             logger.debug(u'订单{0}已全部平仓'.format(self.sys_id))
-        elif self.orig_order.is_closed() and sel.opened_volume != 0:
+        elif self.orig_order.is_closed() and self.opened_volume != 0:
             # 平仓单手数大于原订单开仓手数，原订单全部平仓后，将平仓单剩余手数改为开仓单
             self.is_open = True
             assert self.is_valid(), self.errors
