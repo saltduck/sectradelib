@@ -191,7 +191,10 @@ class BaseTrader(object):
                 try:
                     offset = self.offsets[order.instrument.symbol]
                 except KeyError:
-                    offset = self.offsets[order.instrument.product.prodid]
+                    try:
+                        offset = self.offsets[order.instrument.product.prodid]
+                    except AttributeError:
+                        offset = [0.0, 0.0]
                 if order.stop_profit_offset:
                     offset = list(offset)
                     offset[1] = order.stop_profit_offset
