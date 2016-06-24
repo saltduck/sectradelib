@@ -189,7 +189,7 @@ class Order(models.Model):
         self.update_index_value('is_open', 1)
 
     def update_float_value(self, att, value):
-        assert att in ('stoploss', 'stopprofit', 'stop_profit_offset')
+        assert att in ('stoploss', 'stopprofit', 'stop_profit_offset', 'volume')
         value = float(value)
         self.db.hset(self.key(), att, value)
         setattr(self, att, value)
