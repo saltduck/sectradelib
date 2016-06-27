@@ -22,7 +22,6 @@ class BaseStrategy(object):
         self.code = str(code)
         self.trader = trader
         self.app = app
-        self.orders = defaultdict(list)
 
     def check(self, symbol):
         if not self.trader.can_trade():
@@ -61,27 +60,21 @@ class BaseStrategy(object):
                 if not self.trader.cancel_order(order):
                     ok = True
                     break
-                self.orders[inst.id].remove(order.local_id)
                 neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
                 self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
                 logger.info('Order {0} replaced by {1}'.format(order.sys_id, neworder.local_id))
                 order = neworder
-                self.orders[inst.id].append(order.local_id)
             if not ok:
                 if action == 'CANCEL':
                     if self.trader.cancel_order(order):
-                        self.orders[inst.id].remove(order.local_id)
                         self.on_cancel(order)
                 elif action == 'MARKET':
                     order = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
-                    if order:
-                        self.orders[inst.id].append(order.local_id)
             return order
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
         if order:
-            self.orders[inst.id].append(order.local_id)
             if not self.trader.is_simul and count > 0:
                 threading.Thread(target=work, args=(order, delay, step, count, action)).start()
         return order
