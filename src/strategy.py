@@ -83,7 +83,7 @@ class BaseStrategy(object):
         if order:
             self.orders[inst.id].append(order.local_id)
             if not self.trader.is_simul and count > 0:
-                threading.Thread(target=work, args=(order, delay, step, count, action)).start()
+                threading.Thread(target=work, args=(order, delay, step, count, action), name=threading.current_thread().name+'-algo').start()
         return order
 
     def close(self, inst, price):
