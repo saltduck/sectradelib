@@ -76,7 +76,7 @@ class BaseStrategy(object):
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
         if order:
             if not self.trader.is_simul and count > 0:
-                threading.Thread(target=work, args=(order, delay, step, count, action)).start()
+                threading.Thread(target=work, args=(order, delay, step, count, action), name=threading.current_thread().name+'-algo').start()
         return order
 
     def close(self, inst, price):
