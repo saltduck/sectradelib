@@ -46,7 +46,7 @@ class BaseStrategy(object):
                     # system exit
                     break
                 order = Order.objects.get_by_id(order.id)
-                if order.filled_volume == order.volume:
+                if abs(order.filled_volume) == abs(order.volume):
                     # Completed
                     ok = True
                     break
