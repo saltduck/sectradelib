@@ -182,7 +182,7 @@ class Order(models.Model):
     def update_status(self, value):
         value = int(value)
         assert 0 <= value < 7
-        logger.debug('update status from {0} to {1}'.format(getattr(self, 'status'), value))
+        logger.debug('update order {2} status from {0} to {1}'.format(getattr(self, 'status'), value, self.sys_id))
         self.update_index_value('status', value)
 
     def change_to_open_order(self):
