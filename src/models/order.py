@@ -155,7 +155,7 @@ class Order(models.Model):
         super(Order, self).delete(*args, **kwargs)
 
     def update_index_value(self, att, value):
-        assert att in ('status', 'is_open')
+        assert att in ('status', 'is_open', 'local_id')
         pipeline = self.db.pipeline()
         # remove from old index
         indkey = self._index_key_for_attr_val(att, getattr(self, att))
@@ -165,14 +165,22 @@ class Order(models.Model):
         # in version 0.1.4 there is a bug in self._add_to_index(att, value, pipeline):
         #      the val paramter doesnot work, it's ignored.
         # so i have to hardcode it as following
-        t, (zindex, index) = self._index_key_for(att, value)
-        assert t == 'sortedset'
-        pipeline.sadd(index, self.id)
-        pipeline.sadd(self.key()['_indices'], index)
-        descriptor = self.attributes[att]
-        score = descriptor.typecast_for_storage(value)
-        pipeline.zadd(zindex, self.id, score)
-        #pipeline.sadd(self.key()['_zindices'], zindex)
+        t, index = self._index_key_for(att, value)
+        if t == 'attribute':
+            pipeline.sadd(index, self.id)
+            pipeline.sadd(self.key()['_indices'], index)
+        elif t == 'list':
+            for i in index:
+                pipeline.sadd(i, self.id)
+                pipeline.sadd(self.key()['_indices'], i)
+        elif t == 'sortedset':
+            zindex, index = index
+            pipeline.sadd(index, self.id)
+            pipeline.sadd(self.key()['_indices'], index)
+            descriptor = self.attributes[att]
+            score = descriptor.typecast_for_storage(value)
+            pipeline.zadd(zindex, self.id, score)
+            pipeline.sadd(self.key()['_zindices'], zindex)
         # set db value
         pipeline.hset(self.key(), att, value)
         pipeline.execute()
@@ -187,6 +195,10 @@ class Order(models.Model):
 
     def change_to_open_order(self):
         self.update_index_value('is_open', 1)
+
+    def update_local_id(self, value):
+        value = str(value)
+        self.update_index_value('local_id', value)
 
     def update_float_value(self, att, value):
         assert att in ('stoploss', 'stopprofit', 'stop_profit_offset', 'volume')
