@@ -58,8 +58,12 @@ class BaseStrategy(object):
                     price = order.price - step
                 volume = abs(order.volume) - abs(order.filled_volume)
                 if not self.trader.cancel_order(order):
-                    ok = True
-                    break
+                    order = Order.objects.get_by_id(order.id)
+                    if order.status == Order.OS_NONE:
+                        continue
+                    else:
+                        ok = True
+                        break
                 neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
                 self.on_cancel(order, neworder)
                 if not neworder:                    
