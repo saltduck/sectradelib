@@ -57,8 +57,8 @@ class BaseStrategy(object):
                 else:
                     price = order.price - step
                 volume = abs(order.volume) - abs(order.filled_volume)
+                order = Order.objects.get_by_id(order.id)
                 if not self.trader.cancel_order(order):
-                    order = Order.objects.get_by_id(order.id)
                     if order.status == Order.OS_NONE:
                         continue
                     else:
@@ -68,7 +68,7 @@ class BaseStrategy(object):
                 self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
-                logger.info('Order {0} replaced by {1}'.format(order.sys_id, neworder.local_id))
+                logger.info('Order {0} replaced by {1}'.format(order.sys_id or order.local_id, neworder.local_id))
                 order = neworder
             if not ok:
                 if action == 'CANCEL':
