@@ -77,9 +77,12 @@ class BaseStrategy(object):
                     if self.trader.cancel_order(order):
                         self.on_cancel(order)
                 elif action == 'MARKET':
+                    neworder = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
                     if self.trader.cancel_order(order):
-                        self.on_cancel(order)
-                    order = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
+                        self.on_cancel(order, neworder)
+                    if neworder:
+                        logger.info('Order {0} replaced by {1}'.format(order.sys_id or order.local_id, neworder.local_id))
+                        order = neworder
             return order
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
         if order:
