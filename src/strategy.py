@@ -75,6 +75,8 @@ class BaseStrategy(object):
                     if self.trader.cancel_order(order):
                         self.on_cancel(order)
                 elif action == 'MARKET':
+                    if self.trader.cancel_order(order):
+                        self.on_cancel(order)
                     order = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
             return order
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
