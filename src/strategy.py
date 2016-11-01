@@ -57,14 +57,18 @@ class BaseStrategy(object):
                 else:
                     price = order.price - step
                 volume = abs(order.volume) - abs(order.filled_volume)
+                order = Order.objects.get_by_id(order.id)
                 if not self.trader.cancel_order(order):
-                    ok = True
-                    break
+                    if order.status == Order.OS_NONE:
+                        continue
+                    else:
+                        ok = True
+                        break
                 neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
                 self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
-                logger.info('Order {0} replaced by {1}'.format(order.sys_id, neworder.local_id))
+                logger.info('Order {0} replaced by {1}'.format(order.sys_id or order.local_id, neworder.local_id))
                 order = neworder
             if not ok:
                 if not order.is_open:
@@ -73,6 +77,8 @@ class BaseStrategy(object):
                     if self.trader.cancel_order(order):
                         self.on_cancel(order)
                 elif action == 'MARKET':
+                    if self.trader.cancel_order(order):
+                        self.on_cancel(order)
                     order = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
             return order
         order = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
