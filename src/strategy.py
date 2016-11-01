@@ -67,6 +67,8 @@ class BaseStrategy(object):
                 logger.info('Order {0} replaced by {1}'.format(order.sys_id, neworder.local_id))
                 order = neworder
             if not ok:
+                if not order.is_open:
+                    order.orig_order.update_status(Order.OS_FILLED)
                 if action == 'CANCEL':
                     if self.trader.cancel_order(order):
                         self.on_cancel(order)
