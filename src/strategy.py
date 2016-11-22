@@ -64,7 +64,7 @@ class BaseStrategy(object):
                     else:
                         ok = True
                         break
-                neworder = self.trader.open_order(order.instrument, price, volume, order.is_long, strategy_code=self.code)
+                neworder = self.trader.open_order(inst, price, volume, direction, strategy_code=self.code)
                 self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
