@@ -160,6 +160,8 @@ class BaseTrader(object):
                 logger.error(u'找不到订单号为{0}的订单'.format(local_id))
                 return
             order.update_status(Order.OS_REJECTED)
+            if not order.is_open:
+                order.orig_order.update_status(Order.OS_FILLED)
 
     def on_cancel(self, local_id):
         with self.lock:
