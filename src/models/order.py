@@ -4,6 +4,7 @@ from redisco import models
 
 from .instrument import Instrument
 from ..utils import current_price
+from .. import strategies
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,10 @@ class Order(models.Model):
     @property
     def cur_price(self):
         return current_price(self.instrument.secid, self.opened_volume > 0)
+
+    @property
+    def strategy(self):
+        return strategies.get(self.code)
 
     def delete(self, *args, **kwargs):
         for t in self.trades:
