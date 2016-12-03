@@ -4,7 +4,7 @@ from redisco import models
 
 from .instrument import Instrument
 from ..utils import current_price
-from .. import strategies
+from .. import STRATEGIES
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +152,7 @@ class Order(models.Model):
 
     @property
     def strategy(self):
-        return strategies.get(self.code)
+        return STRATEGIES.get(self.code)
 
     def delete(self, *args, **kwargs):
         for t in self.trades:

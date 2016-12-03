@@ -1,1 +1,1 @@
-strategies = {}
+STRATEGIES = {}
