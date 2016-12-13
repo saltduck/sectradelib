@@ -152,7 +152,7 @@ class Order(models.Model):
 
     @property
     def strategy(self):
-        return STRATEGIES.get(self.code)
+        return STRATEGIES.get(self.strategy_code)
 
     def delete(self, *args, **kwargs):
         for t in self.trades:
