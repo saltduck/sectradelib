@@ -61,6 +61,8 @@ class BaseStrategy(object):
                 if not self.trader.cancel_order(order):
                     if order.status == Order.OS_NONE:
                         continue
+                    elif order.status == Order.OS_REJECTED:
+                        pass
                     else:
                         ok = True
                         break
