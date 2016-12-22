@@ -52,6 +52,21 @@ class Instrument(models.Model):
         else:
             return abs(self.amount(price, volume) * self.short_margin_ratio)
 
+    def amount2volume(self, amt, price):
+        if not price:
+            return 0.0
+        if self.indirect_quotation:
+            return amt * price / self.multiplier
+        else:
+            return amt / price / self.multiplier
+
+    def margin2volume(self, margin, price, direction=None):
+        if direction:
+            amt = margin / self.long_margin_ratio
+        else:
+            amt = margin / self.short_margin_ratio
+        return self.amount2volume(amt, price)
+
     def calc_commission(self, price, volume, is_open):
         if is_open:
             if self.open_commission_rate is None:
