@@ -35,6 +35,9 @@ class BaseStrategy(object):
             logger.debug('Instrument {0} is not in trading!'.format(inst.secid))
             return False
         return inst
+
+    def incr_order_cnt(self, count=1):
+        pass
         
     @logerror
     def open_order(self, inst, price, volume, direction, delay=60, step=0.0, count=1, action=''):
@@ -70,6 +73,8 @@ class BaseStrategy(object):
                 self.on_cancel(order, neworder)
                 if not neworder:                    
                     break
+                if order.is_open and order.status == Order.OS_FILLED:
+                    self.incr_order_cnt()
                 logger.info('Order {0} replaced by {1}'.format(order.sys_id or order.local_id, neworder.local_id))
                 order = neworder
             if not ok:
