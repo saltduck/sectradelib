@@ -82,7 +82,9 @@ class BaseStrategy(object):
                     order.orig_order.update_status(Order.OS_FILLED)
                 if action == 'CANCEL':
                     if self.trader.cancel_order(order):
-                        self.on_cancel(order)
+                        order = Order.objects.get_by_id(order.id)
+                        if order.status != Order.OS_FILLED:
+                            self.on_cancel(order)
                 elif action == 'MARKET':
                     neworder = self.trader.open_order(inst, 0.0, volume, direction, strategy_code=self.code)
                     if self.trader.cancel_order(order):
