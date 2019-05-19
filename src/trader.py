@@ -174,6 +174,9 @@ class BaseTrader(object):
                 order.update_float_value('volume', order.filled_volume)
             else:
                 order.update_status(Order.OS_CANCELED)
+            if not order.is_open and order.orig_order.status == Order.OS_CLOSING:
+                # 平仓单撤销后，恢复原开仓单状态
+                order.orig_order.update_status(Order.OS_FILLED)
             logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime, setstop=True):
