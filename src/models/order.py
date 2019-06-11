@@ -76,7 +76,7 @@ class Order(models.Model):
     price = models.FloatField(indexed=False)
     volume = models.FloatField(indexed=False)
     status = models.IntegerField(default=OS_NONE)
-    orig_order = models.ReferenceField('Order')
+    orig_order = models.ReferenceField('Order', related_name='close_orders')
     stop_profit_offset = models.FloatField(indexed=False, default=0.0)  # 止赢偏离值
     stoploss = models.FloatField(indexed=False, default=0.0)     # 止损价
     stopprofit = models.FloatField(indexed=False, default=0.0)   # 止赢价
