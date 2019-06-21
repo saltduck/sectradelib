@@ -160,7 +160,7 @@ class Order(models.Model):
         super(Order, self).delete(*args, **kwargs)
 
     def update_index_value(self, att, value):
-        assert att in ('status', 'is_open', 'local_id')
+        assert att in ('status', 'is_open', 'local_id', 'sys_id')
         pipeline = self.db.pipeline()
         # remove from old index
         indkey = self._index_key_for_attr_val(att, getattr(self, att))
@@ -204,6 +204,10 @@ class Order(models.Model):
     def update_local_id(self, value):
         value = str(value)
         self.update_index_value('local_id', value)
+
+    def update_sys_id(self, value):
+        value = str(value)
+        self.update_index_value('sys_id', value)
 
     def update_float_value(self, att, value):
         assert att in ('stoploss', 'stopprofit', 'stop_profit_offset', 'volume')
