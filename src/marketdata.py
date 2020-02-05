@@ -8,9 +8,7 @@ logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
 
 
-class MarketDataApi(object):
-    __metaclass__ = ABCMeta
-
+class MarketDataApi(object, metaclass=ABCMeta):
     def __init__(self, quote_service, instruments, interval):
         self.quote_service = quote_service
         self.instruments = set(instruments)

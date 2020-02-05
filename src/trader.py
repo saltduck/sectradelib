@@ -96,19 +96,19 @@ class BaseTrader(object):
 
     def set_monitors(self, publish=True):
         self.monitors = {}
-        for symbol, offset in self.offsets.items():
+        for symbol, offset in list(self.offsets.items()):
             symbol = symbol.strip()
             instrument = self.get_instrument_from_symbol(symbol)
             if publish:
                 rdb.publish('mdmonitor', instrument.secid)  # Notify quoteservice
                 rdb.publish('strategymonitor', json.dumps((symbol, instrument.id)))      # Notify strategy service
             self.monitors[symbol] = instrument
-            logger.debug(u'add_instrument: {0}'.format(instrument))
-        logger.debug(u'Set monitors to {0}'.format(self.monitors))
+            logger.debug('add_instrument: {0}'.format(instrument))
+        logger.debug('Set monitors to {0}'.format(self.monitors))
 
     def ready_for_trade(self):
         if not self.is_ready:
-            logger.info(u'准备就绪，可以开始交易！')
+            logger.info('准备就绪，可以开始交易！')
         self.is_ready = True
 
     def on_account_changed(self):
@@ -124,7 +124,7 @@ class BaseTrader(object):
             inst = Instrument.objects.filter(secid=instid).first()
             order = Order.objects.filter(sys_id=orderid).first()
             if not order:
-                logger.error(u'收到未知订单的历史成交记录, 订单号：{0}'.format(orderid))
+                logger.error('收到未知订单的历史成交记录, 订单号：{0}'.format(orderid))
                 return
             order.local_id = local_id
             assert order.is_open is not None, order
@@ -139,13 +139,13 @@ class BaseTrader(object):
                 return
             order = Order.objects.filter(local_id=local_id).first()
             if order is None:
-                logger.warn(u'找不到本地订单号为{0}的订单'.format(local_id))
+                logger.warn('找不到本地订单号为{0}的订单'.format(local_id))
                 return False
             order.on_new(orderid, instid, direction, price, volume, exectime)
-            logger.info(u'<策略{0}>下单: {1}{2}仓 合约={3} 数量={4} 价格={5} 订单号={6}'.format(
+            logger.info('<策略{0}>下单: {1}{2}仓 合约={3} 数量={4} 价格={5} 订单号={6}'.format(
                     order.strategy_code,
-                    u'开' if order.is_open else u'平',
-                    u'多' if order.is_long == order.is_open else u'空',
+                    '开' if order.is_open else '平',
+                    '多' if order.is_long == order.is_open else '空',
                     order.instrument.name,
                     volume,
                     price,
@@ -154,10 +154,10 @@ class BaseTrader(object):
 
     def on_reject(self, local_id, reason_code, reason_desc):
         with self.lock:
-            logger.warning(u'订单(本地订单号：{0})被拒绝，原因：{1} {2}'.format(local_id, reason_code, reason_desc))
+            logger.warning('订单(本地订单号：{0})被拒绝，原因：{1} {2}'.format(local_id, reason_code, reason_desc))
             order = Order.objects.filter(local_id=local_id).first()
             if order is None:
-                logger.error(u'找不到订单号为{0}的订单'.format(local_id))
+                logger.error('找不到订单号为{0}的订单'.format(local_id))
                 return
             order.update_status(Order.OS_REJECTED)
             if not order.is_open:
@@ -167,7 +167,7 @@ class BaseTrader(object):
         with self.lock:
             order = Order.objects.filter(local_id=local_id).first()
             if not order:
-                logger.error(u'收到未知订单的撤单回报，本地订单号：{0}'.format(local_id))
+                logger.error('收到未知订单的撤单回报，本地订单号：{0}'.format(local_id))
                 return
             if order.is_open and order.status == Order.OS_FILLED:
                 # 开仓单部成部撤特殊处理
@@ -177,16 +177,16 @@ class BaseTrader(object):
             if not order.is_open and order.orig_order.status == Order.OS_CLOSING:
                 # 平仓单撤销后，恢复原开仓单状态
                 order.orig_order.update_status(Order.OS_FILLED)
-            logger.info(u'<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
+            logger.info('<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime, setstop=True):
         with self.lock:
             order = Order.objects.filter(sys_id=orderid).first()
             if order is None:
-                logger.error(u'找不到订单号为{0}的订单'.format(orderid))
+                logger.error('找不到订单号为{0}的订单'.format(orderid))
                 return
             if order.is_open is None:
-                logger.debug(u'订单(订单号：{0})无法交易，等待重试'.format(orderid))
+                logger.debug('订单(订单号：{0})无法交易，等待重试'.format(orderid))
                 return False
             self.account.on_trade(order, execid, price, volume, exectime)
             if order.is_open and setstop:
@@ -230,7 +230,7 @@ class BaseTrader(object):
         if order.can_cancel:
             self.cancel_orders([order])
         if not order.can_close:
-            logger.warning(u'订单{0}不允许平仓，状态为{1}'.format(order.local_id, order.status))
+            logger.warning('订单{0}不允许平仓，状态为{1}'.format(order.local_id, order.status))
             return
         volume = volume or abs(order.opened_volume)
         if not price:
@@ -247,7 +247,7 @@ class BaseTrader(object):
         orders = []
         for order in self.opened_orders(inst):
             if order.can_close:
-                logger.debug(u'Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
+                logger.debug('Closing Order {0}. filled_volume={1}, closed_volume={2}'.format(
                     order.sys_id, order.filled_volume, order.closed_volume))
                 if limit_price_close:
                     neworder = self.close_order(order, last_close_price(order.instrument.secid))
@@ -262,7 +262,7 @@ class BaseTrader(object):
         返回是否全部成功平仓。"""
         if not orders:
             return True
-        logger.debug(u'等待平仓单{0}执行成功...'.format(orders))
+        logger.debug('等待平仓单{0}执行成功...'.format(orders))
         orders = list(set(orders))
         for i in range(30):
             if not orders:
@@ -274,7 +274,7 @@ class BaseTrader(object):
                     orders.remove(order)
         if orders:
             self.cancel_orders(orders)
-        logger.debug(u'未成功平仓订单：{0}'.format(orders))
+        logger.debug('未成功平仓订单：{0}'.format(orders))
         return not bool(orders)
 
     def cancel_orders(self, orders):

@@ -100,18 +100,18 @@ class BaseStrategy(object):
         return order
 
     def close(self, inst, price):
-        logger.info(u'策略{0}: 平仓{1}'.format(self.code, inst.name))
+        logger.info('策略{0}: 平仓{1}'.format(self.code, inst.name))
         for order in self.trader.opened_orders(instrument=inst, strategy_code=self.code):
             if order.can_close:
                 self.trader.close_order(order, price, strategy_code=str(self.code))
 
     def buy(self, inst, price, volume=None):
-        logger.info(u'策略{0}: 买进{1}'.format(self.code, inst.name))
+        logger.info('策略{0}: 买进{1}'.format(self.code, inst.name))
         if inst.is_trading:
             return self.open_order(inst, price, volume, True)
 
     def sell(self, inst, price, volume=None):
-        logger.info(u'策略{0}: 卖出{1}'.format(self.code, inst.name))
+        logger.info('策略{0}: 卖出{1}'.format(self.code, inst.name))
         if inst.is_trading:
             return self.open_order(inst, price, volume, False)
 
@@ -130,13 +130,13 @@ class CheckAvailableThread(threading.Thread):
     def check(self):
         account = self.trader.account
         if account.available / account.balance < self.reserve / 100.0:
-            logger.warning(u'资金不足，平掉全部浮仓!')
+            logger.warning('资金不足，平掉全部浮仓!')
             self.trader.close_lock = True
             orders = self.trader.close_all()
             if not self.trader.wait_for_closed(orders):
-                logger.info(u'平仓失败！')
+                logger.info('平仓失败！')
             else:
-                logger.info(u'全部平仓成功!')
+                logger.info('全部平仓成功!')
             self.trader.close_lock = False
 
     def run(self):
@@ -166,24 +166,24 @@ class CheckStopThread(threading.Thread):
         # 检查是否触及止损或止赢价
         to_be_closed = []
         for order in self.trader.opened_orders(instrument=instrument):
-            direction = u''
+            direction = ''
             if order.stoploss:
                 if order.opened_volume < 0 and price >= order.stoploss:
-                    direction = u'空头止损'
+                    direction = '空头止损'
                     stopprice = order.stoploss
                 if order.opened_volume > 0 and price <= order.stoploss:
-                    direction = u'多头止损'
+                    direction = '多头止损'
                     stopprice = order.stoploss
             if order.stopprofit:
                 if order.opened_volume < 0 and price <= order.stopprofit:
-                    direction = u'空头止赢'
+                    direction = '空头止赢'
                     stopprice = order.stopprofit
                 if order.opened_volume > 0 and price >= order.stopprofit:
-                    direction = u'多头止赢'
+                    direction = '多头止赢'
                     stopprice = order.stopprofit
             if direction:
                 logger.warning(
-                    u'<策略{4}>合约{0}当前价格{1}触及订单{5}{3}价{2}，立即平仓!'.format(
+                    '<策略{4}>合约{0}当前价格{1}触及订单{5}{3}价{2}，立即平仓!'.format(
                         order.instrument.name,
                         price,
                         stopprice,
@@ -196,7 +196,7 @@ class CheckStopThread(threading.Thread):
                 if neworder:
                     to_be_closed.append(neworder)
         if not self.trader.wait_for_closed(to_be_closed):
-            logger.warning(u'止损(赢)平仓失败，请检查原因!')
+            logger.warning('止损(赢)平仓失败，请检查原因!')
 
     def run(self):
         ps = rdb.pubsub()
@@ -211,7 +211,7 @@ class CheckStopThread(threading.Thread):
                 instid = item['data']
                 instrument = Instrument.objects.filter(secid=instid).first()
                 if instrument is None:
-                    logger.debug(u'非法合约代码: {0}'.format(instid))
+                    logger.debug('非法合约代码: {0}'.format(instid))
                     continue
                 offset = self.trader.offsets.get(instrument.symbol)
                 if not offset:
@@ -260,7 +260,7 @@ class CheckLimitOrderThread(threading.Thread):
             cur_exchange_time = exchange_time(order.instrument.exchangeid)
             delta =  cur_exchange_time - order.order_time
             if delta.total_seconds() >= self.timeout:
-                logger.debug(u'订单时间: {0}, 交易所当前时间: {1}'.format(order.order_time, cur_exchange_time))
+                logger.debug('订单时间: {0}, 交易所当前时间: {1}'.format(order.order_time, cur_exchange_time))
                 self.trader.cancel_order(order)
                 # 限价平仓单撤销后重下市价平仓单
                 if not order.is_open:

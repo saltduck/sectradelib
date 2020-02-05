@@ -22,7 +22,7 @@ def convert_currency(value, from_ccy, to_ccy):
     secid = Instrument.symbol2id('{1}/{0}'.format(from_ccy, to_ccy))
     if secid:
         return value / current_price(secid, True)
-    raise RuntimeError(u'找不到货币{0}兑{1}的汇率'.format(from_ccy, to_ccy))
+    raise RuntimeError('找不到货币{0}兑{1}的汇率'.format(from_ccy, to_ccy))
 
 
 class Balance(models.Model):
@@ -123,15 +123,15 @@ class Account(models.Model):
         balance.value += float(change)
         assert balance.is_valid(), balance.errors
         balance.save()
-        msg = u'{3}：{0}{1}, 余额{2}{1}'.format(change, currency, balance.value, memo)
-        if u'利润' in msg:
+        msg = '{3}：{0}{1}, 余额{2}{1}'.format(change, currency, balance.value, memo)
+        if '利润' in msg:
             logger.info(msg)
         else:
             logger.debug(msg)
         
     def deposit(self, quantity, currency=''):
         currency = currency or self.default_currency
-        self.book(quantity, currency, u'转入资金')
+        self.book(quantity, currency, '转入资金')
         
     def set_balance(self, quantity, currency=''):
         currency = currency or self.default_currency
@@ -139,7 +139,7 @@ class Account(models.Model):
         balance.value = float(quantity)
         assert balance.is_valid(), balance.errors
         balance.save()
-        logger.debug(u'设置资金余额：{0}{1}'.format(quantity, currency))
+        logger.debug('设置资金余额：{0}{1}'.format(quantity, currency))
 
     def set_available(self, available):
         self._available = available
@@ -171,11 +171,11 @@ class Account(models.Model):
         trade = order.on_trade(price, volume, tradetime, execid)
         if not trade:
             return
-        self.book(-trade.commission, order.currency, u'<策略{0}>收取手续费'.format(order.strategy_code))
+        self.book(-trade.commission, order.currency, '<策略{0}>收取手续费'.format(order.strategy_code))
         if not order.is_open:
             # 平仓
             order.on_close(trade)
-            self.book(trade.profit, order.currency, u'<策略{0}>获取利润'.format(order.strategy_code))
+            self.book(trade.profit, order.currency, '<策略{0}>获取利润'.format(order.strategy_code))
             self.real_profits += trade.profit
         if not self.last_trade_time or self.last_trade_time < tradetime:
             self.last_trade_time = tradetime

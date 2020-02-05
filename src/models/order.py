@@ -64,7 +64,7 @@ class Trade(models.Model):
 
 
 class Order(models.Model):
-    OS_NONE, OS_NEW, OS_CANCELED, OS_FILLED, OS_CLOSING, OS_CLOSED, OS_REJECTED = range(7)
+    OS_NONE, OS_NEW, OS_CANCELED, OS_FILLED, OS_CLOSING, OS_CLOSED, OS_REJECTED = list(range(7))
     account = models.ReferenceField('Account')
     local_id = models.Attribute()
     sys_id = models.Attribute(default='')
@@ -82,7 +82,7 @@ class Order(models.Model):
     stopprofit = models.FloatField(indexed=False, default=0.0)   # 止赢价
 
     def __repr__(self):
-        return u'<Order: {0.id}({0.instrument}:{0.opened_volume})>'.format(self)
+        return '<Order: {0.id}({0.instrument}:{0.opened_volume})>'.format(self)
 
     def is_closed(self):
         return self.status == Order.OS_CLOSED
@@ -252,17 +252,17 @@ class Order(models.Model):
         assert self.is_open is not None
         # check duplicate trade
         if Trade.objects.filter(exec_id=execid):
-            logger.debug(u'EXECID {0} 已经存在!'.format(execid))
+            logger.debug('EXECID {0} 已经存在!'.format(execid))
             return False
         if not self.is_long:
             volume = -volume
         t = Trade(order=self)
         t.on_trade(price, volume, tradetime, execid, self.is_open)
         self.update_status(Order.OS_FILLED)
-        logger.info(u'<策略{0}>成交回报: {1}{2}仓 合约={3} 价格={4} 数量={5}'.format(
+        logger.info('<策略{0}>成交回报: {1}{2}仓 合约={3} 价格={4} 数量={5}'.format(
                 self.strategy_code,
-                u'开' if self.is_open else u'平',
-                u'多' if self.is_long == self.is_open else u'空',
+                '开' if self.is_open else '平',
+                '多' if self.is_long == self.is_open else '空',
                 self.instrument.name,
                 price,
                 volume,
@@ -297,10 +297,10 @@ class Order(models.Model):
         trade.on_close()
         if abs(self.orig_order.closed_volume) >= abs(self.orig_order.filled_volume):
             self.orig_order.update_status(Order.OS_CLOSED)
-            logger.debug(u'订单{0}已全部平仓'.format(self.orig_order.sys_id))
+            logger.debug('订单{0}已全部平仓'.format(self.orig_order.sys_id))
         if (abs(self.closed_volume) >= abs(self.volume)) or (abs(self.closed_volume) >= abs(self.orig_order.filled_volume)):
             self.update_status(Order.OS_CLOSED)
-            logger.debug(u'订单{0}已全部平仓'.format(self.sys_id))
+            logger.debug('订单{0}已全部平仓'.format(self.sys_id))
         #elif self.orig_order.is_closed() and self.opened_volume != 0:
             # 平仓单手数大于原订单开仓手数，原订单全部平仓后，将平仓单剩余手数改为开仓单
             #self.change_to_open_order()

@@ -54,8 +54,8 @@ class Win(object):
         if self.win:
             try:
                 self.paint()
-            except Exception, e:
-                logger.exception(unicode(e))
+            except Exception as e:
+                logger.exception(str(e))
             self.done_paint()
 
     # method could be a function - pylint: disable=R0201
@@ -122,10 +122,10 @@ class Win(object):
             self.win.scrollok(True)
             self.win.keypad(1)
             self.do_paint()
-        except Exception, e:
+        except Exception as e:
             self.win = None
             self.panel = None
-            logger.exception(unicode(e))
+            logger.exception(str(e))
 
     def __calc_size(self):
         """calculate the default values for positionand size. By default
@@ -151,7 +151,7 @@ class TextBox(object):
         curses.curs_set(2)
         self.box = curses.textpad.Textbox(self.win, insert_mode=True)
         self.value = initial
-        map(self.box.do_command, initial)
+        list(map(self.box.do_command, initial))
         self.result = None
         self.editing = False
 

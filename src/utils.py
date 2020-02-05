@@ -20,10 +20,10 @@ def check_running(PIDFILE):
                 s = f.readline()
                 pid = int(s)
             except IOError:
-                print 'Cannot read ' + PIDFILE + '!'
+                print('Cannot read ' + PIDFILE + '!')
                 is_running = True
             except ValueError:
-                print PIDFILE + ' content is invalid'
+                print(PIDFILE + ' content is invalid')
                 is_running = True
             else:
                 try:
@@ -31,7 +31,7 @@ def check_running(PIDFILE):
                 except OSError:
                     is_running = False
                 else:
-                    print 'This program is running, DONOT run it again!'
+                    print('This program is running, DONOT run it again!')
                     is_running = True
     else:
         is_running = False
@@ -56,7 +56,7 @@ def align_digit(volume, tick_size):
 
 
 def send_account_email(interval, app, server, port, username, password, sendtolist):
-    logger.info(u'发送资金变动通知email...')
+    logger.info('发送资金变动通知email...')
     import smtplib
     from email.mime.text import MIMEText
     try:
@@ -65,16 +65,16 @@ def send_account_email(interval, app, server, port, username, password, sendtoli
         smtp.login(username, password)
         fromaddr = username
         toaddrs = sendtolist
-        text = u'账户资金变动通知：\n'
-        text += '\n'.join([u'账号：%s    可用资金：%.2f    保证金：%.2f' % (api.accountcode,  api.available, api.margins) for api in app.traderapis])
+        text = '账户资金变动通知：\n'
+        text += '\n'.join(['账号：%s    可用资金：%.2f    保证金：%.2f' % (api.accountcode,  api.available, api.margins) for api in app.traderapis])
         msg = MIMEText(text, 'plain', 'utf8')
         msg['From'] = fromaddr
         msg['To'] = ','.join(toaddrs)
         msg['Subject'] = 'CTP账户余额'
         smtp.sendmail(fromaddr, toaddrs, msg.as_string())
         smtp.quit()
-    except smtplib.SMTPException, e:
-        logger.exception(unicode(e))
+    except smtplib.SMTPException as e:
+        logger.exception(str(e))
     t = threading.Timer(
             interval,
             send_account_email,
@@ -101,18 +101,18 @@ class CheckCtpMDThread(threading.Thread):
         while not self.evt_stop.wait(5):
             v = int(rdb.get(key))
             if v <= self.last_value:
-                logger.error(u'行情进程停止运行，尝试重启...')
+                logger.error('行情进程停止运行，尝试重启...')
                 self.restart_md_process()
                 # wait 5 seconds then check again
                 time.sleep(5)
                 key = self.get_heartbeatkey()
                 v = int(rdb.get(key))
                 if v is None:
-                    logger.error(u'行情进程无法重启！系统停止运行')
+                    logger.error('行情进程无法重启！系统停止运行')
                     self.app.on_emergency()
                     continue
                 else:
-                    logger.info(u'行情进程重启成功')
+                    logger.info('行情进程重启成功')
             self.last_value = v
 
 
@@ -120,8 +120,8 @@ class CheckCtpMDThread(threading.Thread):
 def logerror(fn, *args, **kwargs):
     try:
         return fn(*args, **kwargs)
-    except Exception, e:
-        logger.exception(unicode(e))
+    except Exception as e:
+        logger.exception(str(e))
         return
 
 
@@ -135,7 +135,7 @@ def current_price(instrumentid, direction=None):
     try:
         return float(price)
     except TypeError:
-        logger.error(u'current_price({0}) got {1}'.format(instrumentid, price))
+        logger.error('current_price({0}) got {1}'.format(instrumentid, price))
         return None
 
 def last_close_price(instid):
@@ -143,7 +143,7 @@ def last_close_price(instid):
         price = rdb.hget('last_close_price', instid)
         return price
     except TypeError:
-        logger.error(u'last_close_price({0}) got {1}'.format(instid, price))
+        logger.error('last_close_price({0}) got {1}'.format(instid, price))
         return None
 
 def exchange_time(exchangeid, localtime=None):

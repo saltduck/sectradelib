@@ -2,7 +2,7 @@
 import logging
 import os.path
 import threading
-import Queue
+import queue
 from time import sleep
 from collections import defaultdict
 from operator import attrgetter
@@ -12,7 +12,7 @@ from decimal import Decimal
 import pandas as pd
 import redisco
 
-from utils import current_price # for backward compatible
+from .utils import current_price # for backward compatible
 
 logger = logging.getLogger(__name__)
 rdb = redisco.get_client()
@@ -40,7 +40,7 @@ class QuoteService(threading.Thread):
 
     @property
     def instruments(self):
-        return self.tickdata.keys()
+        return list(self.tickdata.keys())
 
     def subscribe(self, seclist):
         for api in self.mdapis:
@@ -58,7 +58,7 @@ class QuoteService(threading.Thread):
             for item in ps.listen():
                 if item['type'] == 'message':
                     inst = Instrument.objects.filter(secid=item['data']).first()
-                    logger.debug(u'Subscribe market data for:{0}'.format(inst))
+                    logger.debug('Subscribe market data for:{0}'.format(inst))
                     if inst:
                         product = inst.product
                         if product:
@@ -78,8 +78,8 @@ class QuoteService(threading.Thread):
             for instid in self.instruments:
                 try:
                     saved = self.save_inst_mindata(instid) or saved
-                except Exception, e:
-                    logger.exception(unicode(e))
+                except Exception as e:
+                    logger.exception(str(e))
                     pass
             if saved:
                 self.evt_newmindata.set()
@@ -98,7 +98,7 @@ class QuoteService(threading.Thread):
         if not self.market_closed[inst] and (ticks[-1].entry_time - ticks[0].entry_time).seconds < self.interval:
             # logger.debug('No enough data')
             return False
-        logger.info(u'保存合约{0}的分钟数据...'.format(inst))
+        logger.info('保存合约{0}的分钟数据...'.format(inst))
         df = pd.DataFrame.from_records(ticks, index='entry_time')
         rule = '{0}s'.format(self.interval)
         df2 = df.resample(rule, label='right', how={'price': 'ohlc'}).price
