@@ -206,6 +206,15 @@ class BaseTrader(object):
                     logger.debug('offset={0}'.format(offset))
                 order.set_stopprice(price, *offset)
 
+    def on_fullfilled(self, orderid):
+        with self.lock:
+            order = Order.objects.filter(sys_id=orderid).first()
+            if order is None:
+                logger.error(f'找不到订单号为{orderid}的订单')
+                return
+            order.volume = order.filled_volume
+            order.save()
+
     def query_all_trades(self):
         """ 查询自从上次保存数据以来的所有成交历史 """
         self.query_history_trades(start_time=self.account.last_trade_time)
