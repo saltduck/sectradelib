@@ -26,7 +26,7 @@ def convert_currency(value, from_ccy, to_ccy):
 
 
 class Balance(models.Model):
-    value = models.FloatField()
+    value = models.FloatField(indexed=False)
     currency = models.Attribute()
         
     def convert_to(self, to_ccy):
@@ -70,7 +70,7 @@ class Account(models.Model):
             queryset = queryset.filter(instrument_id=instrument.id)
         if strategy_code:
             queryset = queryset.filter(strategy_code=strategy_code)
-        orders = list(queryset.filter(status=Order.OS_NEW))
+        orders = list(queryset.zfilter(status__in=(Order.OS_NONE, Order.OS_NEW)))
         queryset = queryset.filter(status=Order.OS_FILLED)
         orders.extend([o for o in queryset if abs(o.filled_volume) < abs(o.volume)])
         return orders
@@ -157,7 +157,6 @@ class Account(models.Model):
                 neworder.volume = float(volume)
             except:
                 pass 
-            logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
         neworder.update_attributes(account=self, is_open=is_open, strategy_code=strategy_code)
         if orig_order:
             neworder.orig_order = orig_order
@@ -165,6 +164,7 @@ class Account(models.Model):
                 neworder.strategy_code = orig_order.strategy_code
         assert neworder.is_valid(), neworder.errors
         neworder.save()
+        logger.debug('NEWORDER local_id={0}'.format(neworder.local_id))
         return neworder
 
     def on_trade(self, order, execid, price, volume, tradetime):
