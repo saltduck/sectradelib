@@ -66,7 +66,7 @@ class Trade(models.Model):
 class Order(models.Model):
     OS_NONE, OS_NEW, OS_CANCELED, OS_FILLED, OS_CLOSING, OS_CLOSED, OS_REJECTED = list(range(7))
     account = models.ReferenceField('Account')
-    local_id = models.Attribute()
+    local_id = models.Attribute(indexed=True)
     sys_id = models.Attribute(default='')
     strategy_code = models.Attribute(default='')
     instrument = models.ReferenceField(Instrument)
@@ -195,7 +195,7 @@ class Order(models.Model):
     def update_status(self, value):
         value = int(value)
         assert 0 <= value < 7
-        logger.debug('update order {2} status from {0} to {1}'.format(getattr(self, 'status'), value, self.sys_id))
+        logger.debug('update order {2}({3}) status from {0} to {1}'.format(getattr(self, 'status'), value, self.sys_id, self.local_id))
         self.update_index_value('status', value)
 
     def change_to_open_order(self):
@@ -259,12 +259,12 @@ class Order(models.Model):
         t = Trade(order=self)
         t.on_trade(price, volume, tradetime, execid, self.is_open)
         self.update_status(Order.OS_FILLED)
-        logger.info('<策略{0}>成交回报: {1}{2}仓 合约={3} 价格={4} 数量={5}'.format(
+        logger.info('<策略%s>成交回报: %s%s仓 合约=%s 价格=%.*f 数量=%f' % (
                 self.strategy_code,
                 '开' if self.is_open else '平',
                 '多' if self.is_long == self.is_open else '空',
                 self.instrument.name,
-                price,
+                self.instrument.ndigits, price,
                 volume,
             ))
         return t
