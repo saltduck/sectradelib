@@ -20,11 +20,12 @@ class BaseTrader(object):
     def __init__(self, name, accountcode, currency, instrumentstr):
         self.name = name
         self.accountcode = accountcode
-        self.account = Account.objects.get_or_create(code=accountcode, default_currency=currency)
-        if not self.account.last_trade_time:
-            self.account.last_trade_time = datetime.utcnow()
-        if not self.account.balances:
-            self.account.deposit(0.0)
+        if accountcode != 'simul':
+            self.account = Account.objects.get_or_create(code=accountcode, default_currency=currency)
+            if not self.account.last_trade_time:
+                self.account.last_trade_time = datetime.utcnow()
+            if not self.account.balances:
+                self.account.deposit(0.0)
         self.max_balance = 0.0  # 本次运行（当天）最高资金余额
         self.monitors = {}
         self.offsets = {}
@@ -141,6 +142,7 @@ class BaseTrader(object):
             if order is None:
                 logger.warn('找不到本地订单号为{0}的订单'.format(local_id))
                 return False
+            logger.debug('instid=%s'%instid)
             order.on_new(orderid, instid, direction, price, volume, exectime)
             logger.info('<策略{0}>下单: {1}{2}仓 合约={3} 数量={4} 价格={5} 订单号={6}'.format(
                     order.strategy_code,
