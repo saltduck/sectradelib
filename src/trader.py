@@ -162,7 +162,11 @@ class BaseTrader(object):
                 logger.error('找不到订单号为{0}的订单'.format(local_id))
                 return
             order.update_status(Order.OS_REJECTED)
-            if not order.is_open:
+            if order.is_open:
+                # 开仓单被拒绝，则将对应策略的订单数量减一
+                order.strategy.reduce_order_cnt()
+            else:
+                # 平仓单被拒绝，则恢复对应开仓单的状态，否则无法再次平仓
                 order.orig_order.update_status(Order.OS_FILLED)
 
     def on_cancel(self, local_id):

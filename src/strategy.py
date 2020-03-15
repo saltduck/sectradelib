@@ -8,6 +8,7 @@ from datetime import datetime
 
 import redisco
 
+from . import STRATEGIES
 from .quoteservice import current_price
 from .models.instrument import Instrument
 from .models.order import Order
@@ -19,9 +20,11 @@ rdb = redisco.get_client()
 
 class BaseStrategy(object):
     def __init__(self, code, trader, app):
+        global STRATEGIES
         self.code = str(code)
         self.trader = trader
         self.app = app
+        STRATEGIES[code] = self
 
     def check(self, symbol):
         if not self.trader.can_trade():
