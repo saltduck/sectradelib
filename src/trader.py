@@ -180,6 +180,7 @@ class BaseTrader(object):
                 # 平仓单撤销后，恢复原开仓单状态
                 order.orig_order.update_status(Order.OS_FILLED)
             logger.info('<{1}>订单(本地订单号：{0})已撤销'.format(local_id, order.strategy_code))
+            return order
 
     def on_trade(self, execid, secid, orderid, price, volume, exectime, setstop=True):
         with self.lock:
