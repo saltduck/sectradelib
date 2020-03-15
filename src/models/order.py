@@ -87,6 +87,9 @@ class Order(models.Model):
     def is_closed(self):
         return self.status == Order.OS_CLOSED
 
+    def is_canceled(self):
+        return self.status == Order.OS_CANCELED
+
     @property
     def currency(self):
         return self.instrument.quoted_currency
