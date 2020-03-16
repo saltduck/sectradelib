@@ -241,6 +241,10 @@ class BaseTrader(object):
             with self.lock:
                 return self.account.create_order(local_id, inst, price, volume, True, strategy_code)
 
+    def available_volume(self, instrument, is_long, price):
+        amt = self.available
+        return instrument.amount2volume(amt, price)
+
     def close_order(self, order, price=0.0, volume=None, strategy_code=''):
         """ 平仓。返回平仓订单 or None。"""
         if order.can_cancel:
@@ -248,7 +252,10 @@ class BaseTrader(object):
         if not order.can_close:
             logger.warning('订单{0}不允许平仓，状态为{1}'.format(order.local_id, order.status))
             return
-        volume = volume or abs(order.opened_volume)
+        volume = abs(volume or order.opened_volume)
+        if price:
+            volume = min(volume, self.available_volume(order.instrument, not order.is_long, price))
+            logger.debug(f"close_order: volume={volume}")
         if not price:
             local_id = self.close_market_order(order, volume)
         else:
