@@ -26,9 +26,14 @@ def convert_currency(value, from_ccy, to_ccy):
 
 
 class Balance(models.Model):
-    value = models.FloatField(indexed=False)
     currency = models.Attribute()
-        
+    # 可用资金
+    value = models.FloatField(indexed=False)
+    # 冻结资金
+    hold = models.FloatField(indexed=False)
+    # 总余额
+    balance = models.FloatField(indexed=False)
+
     def convert_to(self, to_ccy):
         return convert_currency(self.value, self.currency, to_ccy)
 
@@ -42,6 +47,9 @@ class Account(models.Model):
     def __init__(self, *args, **kwargs):
         super(Account, self).__init__(*args, **kwargs)
         self.real_profits = 0.0
+    
+    def __repr__(self):
+        return f"<Account: {self.id}({self.code})>"
 
     @property
     def orders(self):
@@ -99,6 +107,9 @@ class Account(models.Model):
     def float_profits(self):
         return sum([convert_currency(o.float_profit(), o.currency, self.default_currency) for o in self.opened_orders()])
 
+    def margin_account(self, instrument):
+        return MarginAccount.objects.filter(account_id=self.id, instrument_id=instrument.id).first()
+
     def open_orders(self, strategy_code=''):
         queryset = self.orders.filter(is_open=True)
         if strategy_code:
@@ -139,7 +150,7 @@ class Account(models.Model):
         balance.value = float(quantity)
         assert balance.is_valid(), balance.errors
         balance.save()
-        logger.debug('设置资金余额：{0}{1}'.format(quantity, currency))
+        #logger.debug(f'设置可用资金额：{quantity}{currency}')
 
     def set_available(self, available):
         self._available = available
@@ -180,3 +191,31 @@ class Account(models.Model):
         if not self.last_trade_time or self.last_trade_time < tradetime:
             self.last_trade_time = tradetime
             self.save()
+
+
+class MarginBalance(Balance):
+    # 借币余额
+    borrowed = models.FloatField(indexed=False)
+    # 借币利息余额
+    lending_fee = models.FloatField(indexed=False)
+
+
+class MarginAccount(models.Model):
+    account = models.ReferenceField(Account, indexed=True)
+    instrument = models.ReferenceField(Instrument, indexed=True)
+    maint_ratio = models.FloatField(indexed=False, default=0.0)
+    liquidation_price = models.FloatField(indexed=False, default=0.0)
+    base_balance = models.ReferenceField(MarginBalance)
+    quoted_balance = models.ReferenceField(MarginBalance)
+
+    def base_available(self):
+        return self.base_balance.value
+
+    def quoted_available(self):
+        return self.quoted_balance.value
+
+    def available(self, currency):
+        if currency == self.instrument.base_currency:
+            return self.base_available()
+        if currency == self.instrument.quoted_currency:
+            return self.quoted_available()
