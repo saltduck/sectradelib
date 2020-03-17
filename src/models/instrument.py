@@ -22,6 +22,7 @@ class Instrument(models.Model):
     quoted_currency = models.Attribute(required=True, indexed=False)
     indirect_quotation = models.BooleanField(indexed=False)
     ndigits = models.IntegerField(indexed=False, default=2)
+    ndigits_vol = models.IntegerField(indexed=False, default=4)
     multiplier = models.FloatField(indexed=False)
     open_commission_rate = models.FloatField(indexed=False, default=0.0)
     close_commission_rate = models.FloatField(indexed=False, default=0.0)
@@ -38,6 +39,10 @@ class Instrument(models.Model):
 
     def __repr__(self):
         return self.symbol
+
+    @property
+    def size_increment(self):
+        return 10**(-self.ndigits_vol)
 
     def amount(self, price, volume):
         if not price:
