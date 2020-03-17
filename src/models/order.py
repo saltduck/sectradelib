@@ -300,10 +300,11 @@ class Order(models.Model):
 
     def on_close(self, trade):
         trade.on_close()
-        if abs(self.orig_order.closed_volume) >= abs(self.orig_order.filled_volume):
+        if abs(self.orig_order.closed_volume) > abs(self.orig_order.filled_volume) - self.instrument.size_increment:
             self.orig_order.update_status(Order.OS_CLOSED)
             logger.debug('订单{0}已全部平仓'.format(self.orig_order.sys_id))
-        if (abs(self.closed_volume) >= abs(self.volume)) or (abs(self.closed_volume) >= abs(self.orig_order.filled_volume)):
+        if (abs(self.closed_volume) > abs(self.volume) - self.instrument.size_increment) \
+                or (abs(self.closed_volume) > abs(self.orig_order.filled_volume) - self.instrument.size_increment):
             self.update_status(Order.OS_CLOSED)
             logger.debug('订单{0}已全部平仓'.format(self.sys_id))
         #elif self.orig_order.is_closed() and self.opened_volume != 0:

@@ -80,7 +80,7 @@ class Account(models.Model):
             queryset = queryset.filter(strategy_code=strategy_code)
         orders = list(queryset.zfilter(status__in=(Order.OS_NONE, Order.OS_NEW)))
         queryset = queryset.filter(status=Order.OS_FILLED)
-        orders.extend([o for o in queryset if abs(o.filled_volume) < abs(o.volume)])
+        orders.extend([o for o in queryset if abs(o.filled_volume) < abs(o.volume) - o.instrument.size_increment])
         return orders
 
     def combined_positions(self):
