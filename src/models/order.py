@@ -217,11 +217,11 @@ class Order(models.Model):
 
     def update_stopprice(self, stoploss=None, stopprofit=None):
         if stoploss is not None:
+            logger.info(f"订单({self.local_id})止损价由{self.stoploss}调整为: {stoploss}")
             self.update_float_value('stoploss', stoploss)
-            logger.info(f"订单({self.local_id})止损价调整为: {stoploss}")
         if stopprofit is not None:
+            logger.info(f"订单({self.local_id})止盈价由{self.stopprofit}调整为: {stopprofit}")
             self.update_float_value('stopprofit', stopprofit)
-            logger.info(f"订单({self.local_id})止盈价调整为: {stopprofit}")
 
     def update_stop_profit_offset(self, value):
         self.update_float_value('stop_profit_offset', value)
