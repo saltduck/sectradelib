@@ -99,6 +99,13 @@ class Instrument(models.Model):
     def all_ids(cls):
         return [obj.secid for obj in cls.objects.all()]
 
+    def calc_profit(self, buy_price, sell_price, vol):
+        vol = abs(vol)
+        if self.indirect_quotation:
+            return self.amount(buy_price, vol) - self.amount(sell_price, vol)
+        else:
+            return self.amount(sell_price - buy_price, vol)
+
     def deadline(self):
         if self.exchangeid in ('DCE', 'CZCE'):    # 大连/郑州
             d = self.expire_date.replace(day=1) - datetime.date.resolution

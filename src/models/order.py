@@ -53,10 +53,7 @@ class Trade(models.Model):
             logger.debug('Trade {0} against {1} close volume={2}'.format(self.exec_id, orig_trade.exec_id, vol))
             self.closed_volume -= vol
             orig_trade.closed_volume += vol
-            if self.order.instrument.indirect_quotation:
-                self.profit += self.order.instrument.amount(orig_trade.price, vol) - self.order.instrument.amount(self.price, vol)
-            else:
-                self.profit += self.order.instrument.amount(self.price - orig_trade.price, vol)
+            self.profit += self.order.calc_profit(orig_trade.price, self.price, vol)
             assert orig_trade.is_valid(), orig_trade.errors
             orig_trade.save()
         assert self.is_valid(), self.errors
@@ -233,13 +230,19 @@ class Order(models.Model):
         cur_price = cur_price or self.cur_price
         return self.instrument.calc_margin(cur_price, self.opened_volume)
 
+    def calc_profit(self, open_price=None, close_price=None, vol=None):
+        open_price = open_price or self.orig_order.price
+        close_price = close_price or self.price
+        vol = vol or self.volume
+        if self.is_long:    # close short
+            return self.instrument.calc_profit(close_price, open_price, vol)
+        else:               # close long
+            return self.instrument.calc_profit(open_price, close_price, vol)
+
     def float_profit(self, cur_price=None):
         cur_price = cur_price or self.cur_price
-        profit = self.instrument.amount(cur_price,  self.opened_volume) - self.opened_amount
-        if self.instrument.indirect_quotation:
-            profit *= -1
-        return profit
-    
+        return self.calc_profit(self.avg_fill_price, cur_price, self.opened_volume)
+
     def on_new(self, orderid, instid, direction, price, volume, exectime):
         instrument = Instrument.objects.filter(secid=instid).first()
         #assert self.is_open is not None
