@@ -144,7 +144,7 @@ class BaseTrader(object):
                 return False
             logger.debug('instid=%s'%instid)
             order.on_new(orderid, instid, direction, price, volume, exectime)
-            logger.info('<策略{0}>下单: {1}{2}仓 合约={3} 数量={4} 价格={5} 订单号={6}'.format(
+            logger.info('<策略{0}>\033[1;32m下单\033[0m: {1}{2}仓 合约={3} 数量={4} 价格={5} 订单号={6}'.format(
                     order.strategy_code,
                     '开' if order.is_open else '平',
                     '多' if order.is_long == order.is_open else '空',

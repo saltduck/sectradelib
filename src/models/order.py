@@ -217,10 +217,10 @@ class Order(models.Model):
 
     def update_stopprice(self, stoploss=None, stopprofit=None):
         if stoploss is not None:
-            logger.info(f"订单({self.local_id})止损价由{self.stoploss}调整为: {stoploss}")
+            logger.info(f"订单({self.local_id}:{self.instrument})止损价由{self.stoploss}调整为: {stoploss}")
             self.update_float_value('stoploss', stoploss)
         if stopprofit is not None:
-            logger.info(f"订单({self.local_id})止盈价由{self.stopprofit}调整为: {stopprofit}")
+            logger.info(f"订单({self.local_id}:{self.instrument})止盈价由{self.stopprofit}调整为: {stopprofit}")
             self.update_float_value('stopprofit', stopprofit)
 
     def update_stop_profit_offset(self, value):
@@ -267,13 +267,13 @@ class Order(models.Model):
         t = Trade(order=self)
         t.on_trade(price, volume, tradetime, execid, self.is_open)
         self.update_status(Order.OS_FILLED)
-        logger.info('<策略%s>成交回报: %s%s仓 合约=%s 价格=%.*f 数量=%f' % (
+        logger.info('<策略%s>成交回报: %s%s仓 合约=%s 价格=%.*f 数量=%.*f' % (
                 self.strategy_code,
                 '开' if self.is_open else '平',
                 '多' if self.is_long == self.is_open else '空',
                 self.instrument.name,
                 self.instrument.ndigits, price,
-                volume,
+                self.instrument.ndigits_vol, volume,
             ))
         return t
 
